@@ -1,0 +1,1 @@
+# 全部用 Python 标准库；本文件留作 GitHub Actions 显式声明。

@@ -46,14 +46,19 @@ class XhtmlBuilder(HTMLParser):
         if self.skip_depth:
             return
         if tag == "img":
+            # 微信公众号用 data-src 做懒加载（src 是 1x1 占位），优先取 data-src
             src = ""
+            real_src = ""
             for k, v in attrs:
-                if k.lower() == "src" and v:
+                kl = k.lower()
+                if kl == "data-src" and v:
+                    real_src = v
+                elif kl == "src" and v:
                     src = v
-                    break
-            if not src:
+            chosen = real_src or src
+            if not chosen:
                 return
-            abs_src = urljoin(self.base_url, src)
+            abs_src = urljoin(self.base_url, chosen)
             idx = len(self.images)
             self.images.append(abs_src)
             # XHTML self-closing

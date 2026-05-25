@@ -173,11 +173,11 @@ def push_one(access_token, section_id, dt, url, list_title, log):
     for _, new_i in valid_indices:
         xhtml = xhtml.replace(f'<img src="name:_TMP{new_i}_" />', f'<img src="name:img{new_i}" />')
 
-    # 顶部加 meta（链接、来源、时间）
+    # 顶部加 meta（来源、时间、原文 URL —— 全部纯文字，不带超链接）
     meta_header = (
         f'<p><b>来源：</b>{onenote._x_escape(source or "")} '
         f'<b>发布时间：</b>{onenote._x_escape(publish_str or "")} '
-        f'<br/><b>原文：</b><a href="{onenote._x_escape(url)}">{onenote._x_escape(url)}</a></p>'
+        f'<br/><b>原文：</b>{onenote._x_escape(url)}</p>'
         f'<hr />'
     )
     full_body = meta_header + xhtml

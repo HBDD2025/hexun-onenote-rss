@@ -15,7 +15,7 @@ from urllib.parse import urljoin
 # OneNote 接受的精简标签集（div 故意排除：它只是布局壳，剥掉防止结构歪掉）
 ALLOWED_BLOCK = {"p", "h1", "h2", "h3", "h4", "h5", "h6",
                  "ul", "ol", "li", "blockquote", "table", "tr", "td", "th", "thead", "tbody"}
-ALLOWED_INLINE = {"b", "strong", "em", "i", "u", "a", "span", "br", "sup", "sub"}
+ALLOWED_INLINE = {"b", "strong", "em", "i", "u", "span", "br", "sup", "sub"}  # 'a' 故意剔除：去掉所有蓝色超链接
 ALLOWED_VOID = {"br", "img", "hr"}
 ALLOWED_ALL = ALLOWED_BLOCK | ALLOWED_INLINE | {"img", "hr"}
 
@@ -60,15 +60,7 @@ class XhtmlBuilder(HTMLParser):
             self.parts.append(f'<img src="name:img{idx}" />')
             return
         if tag == "a":
-            href = ""
-            for k, v in attrs:
-                if k.lower() == "href" and v:
-                    href = urljoin(self.base_url, v)
-                    break
-            if href:
-                self.parts.append(f'<a href="{_attr_escape(href)}">')
-            else:
-                self.parts.append("<a>")
+            # 故意不写开始标签，文本会被 handle_data 直接保留
             return
         if tag in ALLOWED_ALL:
             if tag in ALLOWED_VOID:

@@ -111,6 +111,28 @@ def collect_new_articles(state, log):
     return new_items
 
 
+# 图片格式 magic bytes
+IMAGE_MAGIC = {
+    b"\x89PNG\r\n\x1a\n": "image/png",
+    b"\xff\xd8\xff":      "image/jpeg",
+    b"GIF87a":            "image/gif",
+    b"GIF89a":            "image/gif",
+    b"RIFF":              "image/webp",   # 后 4 字节是大小，再后面 "WEBP"
+}
+
+
+def _detect_image(bts):
+    """返回 (是否为有效图片, mime_type)"""
+    if not bts or len(bts) < 32:
+        return False, None
+    for magic, mime in IMAGE_MAGIC.items():
+        if bts.startswith(magic):
+            if mime == "image/webp" and bts[8:12] != b"WEBP":
+                continue
+            return True, mime
+    return False, None
+
+
 def push_one(access_token, section_id, dt, url, list_title, log):
     log(f"→ 拉取 {url}")
     raw = hexun_lib.fetch(url, referer=hexun_lib.LIST_URL)
@@ -123,15 +145,33 @@ def push_one(access_token, section_id, dt, url, list_title, log):
     art_dt = parse_article_dt(publish_str, dt)
     final_title = build_page_title(art_dt, title or list_title)
 
-    # 下载所有图片（同 UA+Referer，应付防盗链）
-    image_blobs = []
-    for img_url in image_urls:
+    # 下载所有图片，每张做 magic-byte 校验；失败的从 XHTML 里剔除并留文字标记
+    image_blobs = []         # 仅保留有效图，按原顺序
+    valid_indices = []       # 原图序号 → 在 image_blobs 中的新序号
+    for i, img_url in enumerate(image_urls):
         try:
             bts, ctype = hexun_lib.fetch_binary(img_url, referer=url)
-            image_blobs.append((bts, ctype))
         except Exception as e:
-            log(f"  ! 图片下载失败：{img_url} → {e}")
-            image_blobs.append((b"", "image/png"))  # 留个占位，避免 name:imgN 错位
+            log(f"  ! 图片下载失败 [{i}]：{img_url} → {e}")
+            bts, ctype = b"", None
+        is_img, sniffed = _detect_image(bts)
+        if not is_img:
+            log(f"  ! 图片校验失败 [{i}] ({len(bts)}B ctype={ctype})：{img_url}")
+            continue
+        new_idx = len(image_blobs)
+        image_blobs.append((bts, sniffed or ctype))
+        valid_indices.append((i, new_idx))
+
+    # 重写 XHTML：失败的 img 替换成文字标记，幸存的 img 重新编号
+    failed_set = {i for i in range(len(image_urls))} - {old for old, _ in valid_indices}
+    for old_i in sorted(failed_set):
+        xhtml = xhtml.replace(f'<img src="name:img{old_i}" />', '<p>[图片未能获取]</p>')
+    # 把幸存图重新编号到 0..N-1
+    # 用临时占位防止重号覆盖
+    for old_i, new_i in valid_indices:
+        xhtml = xhtml.replace(f'<img src="name:img{old_i}" />', f'<img src="name:_TMP{new_i}_" />')
+    for _, new_i in valid_indices:
+        xhtml = xhtml.replace(f'<img src="name:_TMP{new_i}_" />', f'<img src="name:img{new_i}" />')
 
     # 顶部加 meta（链接、来源、时间）
     meta_header = (

@@ -29,6 +29,7 @@ from datetime import datetime, timedelta, timezone
 import body_xhtml
 import hexun_lib
 import onenote
+import rss_lib
 
 
 BEIJING = timezone(timedelta(hours=8))
@@ -92,7 +93,12 @@ def build_page_title(art_dt, title):
 
 
 def collect_new_articles(state, log):
-    """遍历所有 5 个栏目，按 URL 和归一化标题双重去重。"""
+    """
+    汇集和讯 5 栏目 + 14 个 RSS 源的候选；URL + 归一化标题双重去重。
+    返回 [(dt, url, title, content_html_or_None, source_label), ...]
+    content_html=None 表示需要在推送时拉文章页（仅和讯）；
+    content_html=str 表示 RSS 里已带正文。
+    """
     pushed_urls = set(state.get("pushed_urls", []))
     pushed_titles = set(state.get("pushed_titles", []))
     is_first_run = len(pushed_urls) == 0
@@ -100,44 +106,64 @@ def collect_new_articles(state, log):
     if is_first_run:
         log(f"首次运行，仅推送 {cutoff.date()} 之后（≈过去 {BOOTSTRAP_HOURS} 小时）的文章；其他记入 state")
 
-    # 1. 抓所有列表页，汇总条目
-    all_entries = []
+    # --- 1a. 抓和讯 5 个栏目 ---
+    all_entries = []  # 统一形状: (dt, url, title, content_or_none, source_label)
     for list_url in hexun_lib.LIST_URLS:
         try:
             raw = hexun_lib.fetch(list_url, referer="https://insurance.hexun.com/")
             entries = hexun_lib.parse_list_page(hexun_lib.decode_html(raw))
-            log(f"列表 {list_url} → {len(entries)} 条")
-            all_entries.extend(entries)
+            log(f"和讯 {list_url} → {len(entries)} 条")
+            for dt, url, title in entries:
+                all_entries.append((dt, url, title, None, "和讯"))
         except Exception as e:
             log(f"  ! 列表抓取失败：{list_url} → {e}")
 
-    # 2. 按 URL 在 batch 内先去一遍重（避免跨栏目同 URL 重复处理）
+    # --- 1b. 抓 14 个 RSS 源 ---
+    for feed_url in rss_lib.FEEDS:
+        try:
+            chan_title, items = rss_lib.parse_feed(feed_url)
+            log(f"RSS {chan_title or feed_url[-30:]} → {len(items)} 条")
+            for it in items:
+                if not it.get("link") or not it.get("title"):
+                    continue
+                if it.get("date") is None:
+                    continue
+                all_entries.append((
+                    it["date"], it["link"], it["title"],
+                    it["content_html"], chan_title or "RSS",
+                ))
+        except Exception as e:
+            log(f"  ! RSS 拉取失败：{feed_url[-30:]} → {e}")
+
+    # --- 2. batch 内按 URL 去重 ---
     seen_urls_batch = set()
     after_url_dedup = []
-    for dt, url, title in all_entries:
+    for tup in all_entries:
+        url = tup[1]
         if url in seen_urls_batch:
             continue
         seen_urls_batch.add(url)
-        after_url_dedup.append((dt, url, title))
+        after_url_dedup.append(tup)
 
-    # 3. 按归一化标题去重（同新闻挂在多栏目，标题相同视为同一条；保留最先出现的）
+    # --- 3. batch 内按归一化标题去重 ---
     seen_titles_batch = set()
     deduped = []
     title_collisions = 0
-    for dt, url, title in after_url_dedup:
+    for tup in after_url_dedup:
+        title = tup[2]
         key = _norm_title(title)
         if key and key in seen_titles_batch:
             title_collisions += 1
             continue
         if key:
             seen_titles_batch.add(key)
-        deduped.append((dt, url, title))
-    log(f"汇总 {len(all_entries)} → URL 去重 {len(after_url_dedup)} → 标题去重 {len(deduped)}（跨栏目重复 {title_collisions} 条）")
+        deduped.append(tup)
+    log(f"汇总 {len(all_entries)} → URL 去重 {len(after_url_dedup)} → 标题去重 {len(deduped)}（跨源重复 {title_collisions} 条）")
 
-    # 4. 对比 state，排除已推过的（URL 或标题命中即跳过）
+    # --- 4. 对比 state，排除已推过的 ---
     new_items = []
     skipped_old = 0
-    for dt, url, title in deduped:
+    for dt, url, title, content, source in deduped:
         if url in pushed_urls:
             continue
         if _norm_title(title) in pushed_titles:
@@ -148,7 +174,7 @@ def collect_new_articles(state, log):
                 pushed_titles.add(_norm_title(title))
                 skipped_old += 1
                 continue
-        new_items.append((dt, url, title))
+        new_items.append((dt, url, title, content, source))
 
     state["pushed_urls"] = sorted(pushed_urls)
     state["pushed_titles"] = sorted(pushed_titles)
@@ -180,14 +206,26 @@ def _detect_image(bts):
     return False, None
 
 
-def push_one(access_token, section_id, dt, url, list_title, log):
-    log(f"→ 拉取 {url}")
-    raw = hexun_lib.fetch(url, referer=hexun_lib.LIST_URL)
-    html = hexun_lib.decode_html(raw)
-    title, publish_str, source = hexun_lib.extract_article_meta(html)
-    body_html_raw = hexun_lib.extract_body_html(html)
-    if not body_html_raw:
-        raise RuntimeError("正文区 art_contextBox 未找到")
+def push_one(access_token, section_id, dt, url, list_title, log,
+             prefetched_content=None, source_label=None):
+    """
+    prefetched_content：RSS 源已带正文 HTML 时传入；为 None 则按 hexun 流程拉文章页。
+    source_label：用于顶部 meta 显示（RSS 用频道名，hexun 用原文里 <a> 的来源）。
+    """
+    if prefetched_content is not None:
+        # RSS 路径：正文已有，无需再请求
+        title = list_title
+        publish_str = dt.strftime("%Y-%m-%d")
+        source = source_label or ""
+        body_html_raw = prefetched_content
+    else:
+        log(f"→ 拉取 {url}")
+        raw = hexun_lib.fetch(url, referer=hexun_lib.LIST_URL)
+        html = hexun_lib.decode_html(raw)
+        title, publish_str, source = hexun_lib.extract_article_meta(html)
+        body_html_raw = hexun_lib.extract_body_html(html)
+        if not body_html_raw:
+            raise RuntimeError("正文区 art_contextBox 未找到")
     xhtml, image_urls = body_xhtml.convert(body_html_raw, base_url=url)
     art_dt = parse_article_dt(publish_str, dt)
     final_title = build_page_title(art_dt, title or list_title)
@@ -291,10 +329,13 @@ def main():
     n_ok, n_fail = 0, 0
     pushed_urls = set(state.get("pushed_urls", []))
     pushed_titles = set(state.get("pushed_titles", []))
-    for i, (dt, url, title) in enumerate(items, 1):
-        log(f"[{i}/{len(items)}] {dt} {title[:40]}")
+    for i, (dt, url, title, content, source) in enumerate(items, 1):
+        log(f"[{i}/{len(items)}] {dt} [{source}] {title[:40]}")
         try:
-            actual_title = push_one(access_token, section_id, dt, url, title, log)
+            actual_title = push_one(
+                access_token, section_id, dt, url, title, log,
+                prefetched_content=content, source_label=source,
+            )
             pushed_urls.add(url)
             # 同时记列表标题和文章页实际标题，两个都能命中
             pushed_titles.add(_norm_title(title))

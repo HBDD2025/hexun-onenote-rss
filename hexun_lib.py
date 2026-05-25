@@ -15,7 +15,16 @@ UA_LIST = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0",
 ]
 
-LIST_URL = "https://insurance.hexun.com/bxhyzx/index.html"
+LIST_URL = "https://insurance.hexun.com/bxhyzx/index.html"  # 保留以兼容旧调用
+
+# 同步源：5 个和讯保险栏目的列表页
+LIST_URLS = [
+    "https://insurance.hexun.com/bxhyzx/index.html",  # 行业资讯
+    "https://insurance.hexun.com/bxjgdt/index.html",  # 监管动态
+    "https://insurance.hexun.com/bxgsxw/index.html",  # 公司新闻
+    "https://insurance.hexun.com/bxzjyy/index.html",  # 中介营销
+    "https://insurance.hexun.com/bxscpl/",            # 市场评论
+]
 
 RETRIES = 3
 

@@ -20,6 +20,7 @@ GitHub Actions 调用的主程序：
 import json
 import os
 import random
+import re
 import sys
 import time
 import traceback
@@ -32,9 +33,16 @@ import onenote
 
 BEIJING = timezone(timedelta(hours=8))
 
-STATE_KEEP = 1000          # 最近 N 条 URL 留作去重
+STATE_KEEP = 2000          # 最近 N 条 URL/标题 留作去重
 BOOTSTRAP_HOURS = 48        # 首跑只追溯过去 N 小时
 DELAY_RANGE = (1.5, 3.5)
+
+
+def _norm_title(t):
+    """标题归一化：去全部空白，便于跨栏目去重。"""
+    if not t:
+        return ""
+    return re.sub(r"\s+", "", t)
 
 
 def _env(name):
@@ -45,20 +53,22 @@ def _env(name):
 
 
 def load_state(path):
+    base = {"pushed_urls": [], "pushed_titles": []}
     if not os.path.exists(path):
-        return {"pushed_urls": []}
+        return base
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        if "pushed_urls" not in data:
-            data["pushed_urls"] = []
+        for k, v in base.items():
+            data.setdefault(k, v)
         return data
     except Exception:
-        return {"pushed_urls": []}
+        return base
 
 
 def save_state(path, state):
     state["pushed_urls"] = state["pushed_urls"][-STATE_KEEP:]
+    state["pushed_titles"] = state["pushed_titles"][-STATE_KEEP:]
     state["updated_at"] = datetime.now(BEIJING).isoformat()
     with open(path, "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=2)
@@ -82,29 +92,66 @@ def build_page_title(art_dt, title):
 
 
 def collect_new_articles(state, log):
-    """从 index.html 拉最新一页，找出 state 里没记录的文章。"""
-    raw = hexun_lib.fetch(hexun_lib.LIST_URL, referer="https://insurance.hexun.com/")
-    html = hexun_lib.decode_html(raw)
-    entries = hexun_lib.parse_list_page(html)
-    log(f"列表页 {len(entries)} 条")
-    pushed = set(state.get("pushed_urls", []))
-    is_first_run = len(pushed) == 0
+    """遍历所有 5 个栏目，按 URL 和归一化标题双重去重。"""
+    pushed_urls = set(state.get("pushed_urls", []))
+    pushed_titles = set(state.get("pushed_titles", []))
+    is_first_run = len(pushed_urls) == 0
+    cutoff = datetime.now(BEIJING) - timedelta(hours=BOOTSTRAP_HOURS)
     if is_first_run:
-        cutoff = datetime.now(BEIJING) - timedelta(hours=BOOTSTRAP_HOURS)
         log(f"首次运行，仅推送 {cutoff.date()} 之后（≈过去 {BOOTSTRAP_HOURS} 小时）的文章；其他记入 state")
+
+    # 1. 抓所有列表页，汇总条目
+    all_entries = []
+    for list_url in hexun_lib.LIST_URLS:
+        try:
+            raw = hexun_lib.fetch(list_url, referer="https://insurance.hexun.com/")
+            entries = hexun_lib.parse_list_page(hexun_lib.decode_html(raw))
+            log(f"列表 {list_url} → {len(entries)} 条")
+            all_entries.extend(entries)
+        except Exception as e:
+            log(f"  ! 列表抓取失败：{list_url} → {e}")
+
+    # 2. 按 URL 在 batch 内先去一遍重（避免跨栏目同 URL 重复处理）
+    seen_urls_batch = set()
+    after_url_dedup = []
+    for dt, url, title in all_entries:
+        if url in seen_urls_batch:
+            continue
+        seen_urls_batch.add(url)
+        after_url_dedup.append((dt, url, title))
+
+    # 3. 按归一化标题去重（同新闻挂在多栏目，标题相同视为同一条；保留最先出现的）
+    seen_titles_batch = set()
+    deduped = []
+    title_collisions = 0
+    for dt, url, title in after_url_dedup:
+        key = _norm_title(title)
+        if key and key in seen_titles_batch:
+            title_collisions += 1
+            continue
+        if key:
+            seen_titles_batch.add(key)
+        deduped.append((dt, url, title))
+    log(f"汇总 {len(all_entries)} → URL 去重 {len(after_url_dedup)} → 标题去重 {len(deduped)}（跨栏目重复 {title_collisions} 条）")
+
+    # 4. 对比 state，排除已推过的（URL 或标题命中即跳过）
     new_items = []
     skipped_old = 0
-    for dt, url, list_title in entries:
-        if url in pushed:
+    for dt, url, title in deduped:
+        if url in pushed_urls:
+            continue
+        if _norm_title(title) in pushed_titles:
             continue
         if is_first_run:
-            # 用日期粗筛；时分秒在文章页拉到后再精筛也行，这里先按日期
             if datetime(dt.year, dt.month, dt.day, 23, 59, 59, tzinfo=BEIJING) < cutoff:
-                pushed.add(url)
+                pushed_urls.add(url)
+                pushed_titles.add(_norm_title(title))
                 skipped_old += 1
                 continue
-        new_items.append((dt, url, list_title))
-    state["pushed_urls"] = sorted(pushed)
+        new_items.append((dt, url, title))
+
+    state["pushed_urls"] = sorted(pushed_urls)
+    state["pushed_titles"] = sorted(pushed_titles)
     if is_first_run:
         log(f"  跳过 {skipped_old} 条更老的文章（已记入 state）")
     log(f"待推送 {len(new_items)} 条")
@@ -188,6 +235,8 @@ def push_one(access_token, section_id, dt, url, list_title, log):
         created_iso=art_dt.isoformat(),
     )
     log(f"  ✓ 已推送：{final_title[:60]}")
+    # 返回文章页解析到的标题（更权威），用于 state 标题去重
+    return title or list_title
 
 
 def push_error_page(access_token, section_id, err_text):
@@ -240,12 +289,17 @@ def main():
         raise
 
     n_ok, n_fail = 0, 0
-    pushed = set(state.get("pushed_urls", []))
+    pushed_urls = set(state.get("pushed_urls", []))
+    pushed_titles = set(state.get("pushed_titles", []))
     for i, (dt, url, title) in enumerate(items, 1):
         log(f"[{i}/{len(items)}] {dt} {title[:40]}")
         try:
-            push_one(access_token, section_id, dt, url, title, log)
-            pushed.add(url)
+            actual_title = push_one(access_token, section_id, dt, url, title, log)
+            pushed_urls.add(url)
+            # 同时记列表标题和文章页实际标题，两个都能命中
+            pushed_titles.add(_norm_title(title))
+            if actual_title:
+                pushed_titles.add(_norm_title(actual_title))
             n_ok += 1
         except Exception:
             err = traceback.format_exc()
@@ -254,7 +308,8 @@ def main():
             n_fail += 1
         time.sleep(random.uniform(*DELAY_RANGE))
 
-    state["pushed_urls"] = sorted(pushed)
+    state["pushed_urls"] = sorted(pushed_urls)
+    state["pushed_titles"] = sorted(pushed_titles)
     save_state(state_path, state)
     log(f"结束。成功 {n_ok}，失败 {n_fail}")
     if n_fail and not n_ok:

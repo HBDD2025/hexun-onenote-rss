@@ -107,7 +107,8 @@ def list_sections(access_token):
 # ---- 页面样式（所有新页面统一）----
 PAGE_FONT_FAMILY = "SimSun"                     # 宋体
 PAGE_FONT_SIZE_PT = 14                          # 14 pt
-PAGE_OUTLINE_WIDTH_PX = 900                     # outline 宽度（默认约 600，加宽 50% 让每行字数多 ~25-50%）
+PAGE_OUTLINE_WIDTH_PX = 1125                    # outline 宽度（再加 25%：900 → 1125）
+PAGE_OUTLINE_TOP_PX = 240                       # outline 起始 Y 坐标（防止 3 行以上长标题与正文重叠）
 
 import re as _re_for_style
 _BLOCK_TAGS_FOR_STYLE = ("p", "h1", "h2", "h3", "h4", "h5", "h6",
@@ -147,7 +148,7 @@ def create_page(access_token, section_id, title, xhtml_body, images, created_iso
     meta_created = f'<meta name="created" content="{created_iso}"/>' if created_iso else ""
     element_style = f"font-family:{PAGE_FONT_FAMILY}; font-size:{PAGE_FONT_SIZE_PT}pt"
     outline_style = (
-        f"position:absolute; left:48px; top:120px; "
+        f"position:absolute; left:48px; top:{PAGE_OUTLINE_TOP_PX}px; "
         f"width:{PAGE_OUTLINE_WIDTH_PX}px; "
         f"{element_style}"
     )

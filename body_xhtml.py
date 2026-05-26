@@ -123,16 +123,75 @@ def _attr_escape(s):
     return s.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;")
 
 
+def _strip_promo(xhtml):
+    """
+    剥掉广告条幅 / 公众号末尾推广区。
+    - 尾：找 "《XXX》编辑 张三" 或 "编辑：张三" 或 "【版权声明】"，剪掉之后所有内容
+    - 尾：再去掉末尾连续的纯图段落
+    - 头：剥掉首张 banner（如果首图出现在第一个含文字段落之前）
+    """
+    if not xhtml:
+        return xhtml
+
+    # 1. 找末尾"编辑"标记，剪掉之后
+    end_anchors = [
+        re.compile(r'《[^》]+》\s*编辑[^<]*', re.I),
+        re.compile(r'[（(]?\s*编辑\s*[:：][^<）)]+[）)]?'),
+        re.compile(r'【版权声明】', re.I),
+    ]
+    cut_at = None
+    for pat in end_anchors:
+        for m in pat.finditer(xhtml):
+            # 找该锚点最近的下一个 </p> 或行尾
+            close_p = xhtml.find("</p>", m.end())
+            if close_p != -1:
+                pos = close_p + 4
+            else:
+                pos = m.end()
+            if cut_at is None or pos > cut_at:
+                cut_at = pos
+        if cut_at is not None:
+            break
+    if cut_at is not None:
+        xhtml = xhtml[:cut_at]
+
+    # 2. 尾部：去掉残余的纯图/空段落
+    while True:
+        m = re.search(
+            r'(?:<img[^>]*/>|<p[^>]*>(?:\s*<img[^>]*/>\s*|\s*)+</p>)\s*$',
+            xhtml,
+        )
+        if m and not re.search(r'[一-鿿]', xhtml[m.start():]):
+            xhtml = xhtml[:m.start()]
+        else:
+            break
+
+    # 3. 头部：找第一个含汉字的 <p>，如果它前面只有 <img>/空段，就剥掉
+    m = re.search(r'<p[^>]*>[^<]*[一-鿿]', xhtml)
+    if m:
+        leading = xhtml[:m.start()]
+        # 留下的若只是图、空段、br，剥掉
+        residue = re.sub(r'<img[^>]*/>', '', leading)
+        residue = re.sub(r'<p[^>]*>\s*</p>', '', residue)
+        residue = re.sub(r'<br\s*/>', '', residue)
+        if not residue.strip():
+            xhtml = xhtml[m.start():]
+
+    return xhtml.strip()
+
+
 def convert(body_html, base_url=""):
     """
-    输入：从 art_contextBox 取出的原始 HTML 片段
+    输入：从 art_contextBox / WeChat js_content 取出的原始 HTML 片段
     输出：(xhtml_string, [img_url, ...])
     """
     if not body_html:
         return "", []
-    # 先去掉末尾样板
+    # 先去掉末尾样板（文本级 disclaimer）
     for pat in DISCLAIMER_PATTERNS:
         body_html = pat.sub("", body_html)
     builder = XhtmlBuilder(base_url=base_url)
     builder.feed(body_html)
-    return builder.get_html(), builder.images
+    xhtml = builder.get_html()
+    xhtml = _strip_promo(xhtml)
+    return xhtml, builder.images

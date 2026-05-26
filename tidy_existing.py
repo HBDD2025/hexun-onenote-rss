@@ -124,29 +124,10 @@ def identify_source(url, biz_map):
     return ""
 
 
-def find_main_outline(html):
-    """找 <div data-id="div:..." ...> 的第一个出现位置（OneNote 主 outline）。"""
-    return re.search(r'<div\s+data-id="(div:[^"]+)"[^>]*>', html)
-
-
-def extract_outline_inner(html, outline_match):
-    """对 outline div 做深度计数，提取其内部 HTML。"""
-    start = outline_match.end()
-    depth = 1
-    pos = start
-    rx = re.compile(r'<(/?)div\b[^>]*>', re.I)
-    while pos < len(html):
-        mm = rx.search(html, pos)
-        if not mm:
-            break
-        if mm.group(1):
-            depth -= 1
-            if depth == 0:
-                return html[start:mm.start()]
-        else:
-            depth += 1
-        pos = mm.end()
-    return html[start:]
+def extract_body_inner(html):
+    """提取 <body>...</body> 之间的 HTML 内容。"""
+    m = re.search(r'<body[^>]*>(.*?)</body>', html, re.S)
+    return m.group(1) if m else None
 
 
 def apply_in_place_source_rules(html, source_label):
@@ -255,7 +236,7 @@ def tidy_one_page(access_token, page, biz_map, dry_run, log):
     log(f"→ {title[:55]}")
 
     try:
-        html = get_page_content(access_token, page_id, include_ids=True)
+        html = get_page_content(access_token, page_id, include_ids=False)
     except Exception as e:
         log(f"  ! GET 失败：{e}")
         return "fail"
@@ -264,43 +245,38 @@ def tidy_one_page(access_token, page, biz_map, dry_run, log):
     source_label = identify_source(orig_url, biz_map)
     log(f"  源：{source_label or '(未知)'}, URL: {(orig_url or '')[:80]}")
 
-    m = find_main_outline(html)
-    if not m:
-        log(f"  ! 没找到主 outline div（可能是手动建的页或老格式），跳过")
-        return "skip"
-    outline_id = m.group(1)
-    inner = extract_outline_inner(html, m)
-    if not inner:
-        log(f"  ! outline inner 为空，跳过")
+    body_inner = extract_body_inner(html)
+    if not body_inner:
+        log(f"  ! 没找到 <body>，跳过")
         return "skip"
 
     # 应用所有规则
-    new_inner = body_xhtml._strip_promo(inner)
-    new_inner = apply_in_place_source_rules(new_inner, source_label)
-    # 重新注入字号字体（这里也包到 <span>）
+    new_body = body_xhtml._strip_promo(body_inner)
+    new_body = apply_in_place_source_rules(new_body, source_label)
+    # 重新注入字号字体
     element_style = (
         f"font-family:'{onenote.PAGE_FONT_FAMILY}';"
         f"font-size:{onenote.PAGE_FONT_SIZE_PT}.0pt"
     )
-    new_inner = onenote._inject_inline_style(new_inner, element_style)
-    new_inner = onenote._wrap_text_in_span(new_inner, element_style)
+    new_body = onenote._inject_inline_style(new_body, element_style)
+    new_body = onenote._wrap_text_in_span(new_body, element_style)
 
-    if new_inner.strip() == inner.strip():
+    if new_body.strip() == body_inner.strip():
         log(f"  · 无变化，跳过")
         return "skip"
 
     if dry_run:
-        log(f"  [dry-run] 会 PATCH replace target={outline_id}")
-        log(f"           原长 {len(inner)} → 新长 {len(new_inner)}")
+        log(f"  [dry-run] 会 PATCH replace target=body")
+        log(f"           原长 {len(body_inner)} → 新长 {len(new_body)}")
         return "ok"
 
     try:
         patch_page(access_token, page_id, [{
-            "target": outline_id,
+            "target": "body",
             "action": "replace",
-            "content": new_inner,
+            "content": new_body,
         }])
-        log(f"  ✓ 已原地更新 ({len(inner)} → {len(new_inner)} 字)")
+        log(f"  ✓ 已原地更新 ({len(body_inner)} → {len(new_body)} 字)")
     except Exception as e:
         log(f"  ! PATCH 失败：{e}")
         return "fail"

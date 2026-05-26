@@ -183,6 +183,34 @@ def extract_body_inner(html):
     return m.group(1) if m else None
 
 
+def find_outline_data_id(html):
+    """找主 outline div 的 data-id（通常为 "_default"）。返回 (data_id, inner_html, full_div_open_match_end)。"""
+    m = re.search(r'<div[^>]*\bdata-id="([^"]+)"[^>]*\bstyle="[^"]*position\s*:\s*absolute[^"]*"[^>]*>', html, re.I)
+    if not m:
+        # 回退：找任何带 data-id 的 div
+        m = re.search(r'<div[^>]*\bdata-id="([^"]+)"[^>]*>', html, re.I)
+        if not m:
+            return None, None
+    data_id = m.group(1)
+    # 深度计数提取 inner
+    start = m.end()
+    depth = 1
+    pos = start
+    rx = re.compile(r'<(/?)div\b[^>]*>', re.I)
+    while pos < len(html):
+        mm = rx.search(html, pos)
+        if not mm:
+            break
+        if mm.group(1):
+            depth -= 1
+            if depth == 0:
+                return data_id, html[start:mm.start()]
+        else:
+            depth += 1
+        pos = mm.end()
+    return data_id, html[start:]
+
+
 def apply_image_rules(html, source_label):
     """应用图片规则（绝大多数对所有页面生效，仅 2 条源特定）。
 
@@ -384,7 +412,7 @@ def tidy_one_page(access_token, page, biz_map, dry_run, log):
     log(f"→ [{nb} / {sec}] {title[:50]}")
 
     try:
-        html = get_page_content(access_token, page_id, include_ids=False)
+        html = get_page_content(access_token, page_id, include_ids=True)
     except Exception as e:
         log(f"  ! GET 失败：{e}")
         return "fail"
@@ -392,9 +420,16 @@ def tidy_one_page(access_token, page, biz_map, dry_run, log):
     orig_url = extract_orig_url(html)
     source_label = identify_source(orig_url, biz_map)
 
-    body_inner = extract_body_inner(html)
+    # 优先找 outline 的 data-id（target=具体 data-id 比 target=body 更稳）
+    outline_id, outline_inner = find_outline_data_id(html)
+    if outline_id:
+        body_inner = outline_inner
+        target_for_body = outline_id
+    else:
+        body_inner = extract_body_inner(html)
+        target_for_body = "body"
     if not body_inner:
-        log(f"  ! 没找到 <body>，跳过")
+        log(f"  ! 没找到 outline 或 body，跳过")
         return "skip"
 
     # === 应用规则 ===
@@ -430,7 +465,7 @@ def tidy_one_page(access_token, page, biz_map, dry_run, log):
     try:
         if body_changed:
             patch_page(access_token, page_id, [{
-                "target": "body",
+                "target": target_for_body,
                 "action": "replace",
                 "content": new_body,
             }])
@@ -440,9 +475,9 @@ def tidy_one_page(access_token, page, biz_map, dry_run, log):
                 "action": "replace",
                 "content": f"<title>{new_title}</title>",
             }])
-        log(f"  ✓ 已更新")
+        log(f"  ✓ 已更新 (target={target_for_body})")
     except Exception as e:
-        log(f"  ! PATCH 失败：{e}")
+        log(f"  ! PATCH 失败 (target={target_for_body})：{e}")
         return "fail"
     return "ok"
 

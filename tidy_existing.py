@@ -281,8 +281,12 @@ def build_new_title(orig_title, body_html, page_created_iso):
     # 已是 6 位数字开头（后接非数字或字符串结束）
     m6 = re.match(r'^(\d{6})(\D|$)', orig_title)
     if m6:
-        # 验证一下是合法的 YYMMDD（年 21-30 之间认为靠谱；防误判其他纯数字开头）
         yy = int(m6.group(1)[:2])
+        dd = int(m6.group(1)[4:6])
+        # 特殊：末两位 DD=00（用户约定的"无具体日"），无条件保留原标题
+        if dd == 0:
+            return orig_title, False
+        # 否则按年份范围判断（避免把其他六位数字误当日期）
         if 20 <= yy <= 35:
             return orig_title, False
 

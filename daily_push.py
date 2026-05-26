@@ -21,6 +21,7 @@ import json
 import os
 import random
 import re
+import signal
 import sys
 import time
 import traceback
@@ -30,6 +31,17 @@ import body_xhtml
 import hexun_lib
 import onenote
 import rss_lib
+
+
+PER_ARTICLE_TIMEOUT_SEC = 180   # 单篇超时硬上限（避免一篇文章卡住整个 workflow）
+
+
+class _ArticleTimeout(Exception):
+    pass
+
+
+def _article_timeout_handler(signum, frame):
+    raise _ArticleTimeout(f"push_one 超过 {PER_ARTICLE_TIMEOUT_SEC} 秒，强制终止")
 
 
 BEIJING = timezone(timedelta(hours=8))
@@ -347,24 +359,44 @@ def main():
     n_ok, n_fail = 0, 0
     pushed_urls = set(state.get("pushed_urls", []))
     pushed_titles = set(state.get("pushed_titles", []))
+    # 装上单篇超时信号处理（仅 Unix）
+    has_signal = hasattr(signal, "SIGALRM")
+    if has_signal:
+        signal.signal(signal.SIGALRM, _article_timeout_handler)
+
     for i, (dt, url, title, content, source) in enumerate(items, 1):
         log(f"[{i}/{len(items)}] {dt} [{source}] {title[:40]}")
+        if has_signal:
+            signal.alarm(PER_ARTICLE_TIMEOUT_SEC)
         try:
             actual_title = push_one(
                 access_token, section_id, dt, url, title, log,
                 prefetched_content=content, source_label=source,
             )
             pushed_urls.add(url)
-            # 同时记列表标题和文章页实际标题，两个都能命中
             pushed_titles.add(_norm_title(title))
             if actual_title:
                 pushed_titles.add(_norm_title(actual_title))
             n_ok += 1
+        except _ArticleTimeout as te:
+            log(f"  ! 单篇超时 ({PER_ARTICLE_TIMEOUT_SEC}s)，跳过：{url}")
+            # 加入 state 让以后不再重试这篇，避免下次又卡
+            pushed_urls.add(url)
+            pushed_titles.add(_norm_title(title))
+            n_fail += 1
         except Exception:
             err = traceback.format_exc()
             log(f"  ! 失败：\n{err}")
-            push_error_page(access_token, section_id, f"文章: {url}\n标题: {title}\n\n{err}")
+            try:
+                if has_signal:
+                    signal.alarm(0)
+                push_error_page(access_token, section_id, f"文章: {url}\n标题: {title}\n\n{err}")
+            except Exception:
+                pass
             n_fail += 1
+        finally:
+            if has_signal:
+                signal.alarm(0)
         time.sleep(random.uniform(*DELAY_RANGE))
 
     state["pushed_urls"] = sorted(pushed_urls)

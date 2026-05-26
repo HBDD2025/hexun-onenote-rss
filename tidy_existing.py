@@ -156,6 +156,61 @@ def patch_page(access_token, page_id, actions):
         raise RuntimeError(f"PATCH HTTP {e.code}: {body[:400]}")
 
 
+def delete_page_api(access_token, page_id):
+    req = urllib.request.Request(
+        f"{onenote.GRAPH_BASE}/me/onenote/pages/{page_id}",
+        method="DELETE",
+    )
+    req.add_header("Authorization", f"Bearer {access_token}")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            r.read()
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"DELETE page HTTP {e.code}: {body[:200]}")
+
+
+def delete_section_api(access_token, section_id):
+    req = urllib.request.Request(
+        f"{onenote.GRAPH_BASE}/me/onenote/sections/{section_id}",
+        method="DELETE",
+    )
+    req.add_header("Authorization", f"Bearer {access_token}")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            r.read()
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"DELETE section HTTP {e.code}: {body[:200]}")
+
+
+def section_page_count(access_token, section_id):
+    """快速查分区下还有多少页（>=0），出错返回 -1。"""
+    url = f"{onenote.GRAPH_BASE}/me/onenote/sections/{section_id}/pages?$top=1&$select=id"
+    try:
+        data = onenote._graph_get(access_token, url)
+        # 有 nextLink 表示页数 > top；没有时 len(value) 是确切数（只要 ≤ top）
+        if data.get("@odata.nextLink"):
+            return 100  # 标记为"很多"
+        return len(data.get("value", []))
+    except Exception:
+        return -1
+
+
+def is_page_empty(body_inner):
+    """判断页面是否空白：无可见文字、无图、无附件。"""
+    if not body_inner:
+        return True
+    if re.search(r'<img\b', body_inner, re.I):
+        return False
+    if re.search(r'<object\b', body_inner, re.I):
+        return False
+    text = re.sub(r'<[^>]+>', '', body_inner)
+    text = text.replace('&nbsp;', '').replace('&#160;', '').replace('\xa0', '')
+    text = re.sub(r'\s+', '', text)
+    return not text
+
+
 def extract_orig_url(html):
     m = re.search(r'原文[：:][^<]*?<a[^>]+href="([^"]+)"', html, re.S)
     if m:
@@ -403,83 +458,66 @@ def save_state(state):
         json.dump(state, f, ensure_ascii=False, indent=2)
 
 
-def tidy_one_page(access_token, page, biz_map, dry_run, log):
+def tidy_one_page(access_token, page, dry_run, log, protected_section_id, delete_empty):
+    """方案 1：仅 PATCH title；body 不动（body PATCH 在 OneNote 端常 500，不靠谱）。
+    + 检测空白页，可选删除。
+    """
     page_id = page["id"]
     title = page.get("title", "")
+    sec_id = (page.get("parentSection") or {}).get("id", "")
     sec = (page.get("parentSection") or {}).get("displayName", "?")
     nb = (page.get("parentNotebook") or {}).get("displayName", "?")
     created_iso = page.get("createdDateTime", "")
     log(f"→ [{nb} / {sec}] {title[:50]}")
 
     try:
-        html = get_page_content(access_token, page_id, include_ids=True)
+        html = get_page_content(access_token, page_id, include_ids=False)
     except Exception as e:
         log(f"  ! GET 失败：{e}")
         return "fail"
 
-    orig_url = extract_orig_url(html)
-    source_label = identify_source(orig_url, biz_map)
+    body_inner = extract_body_inner(html) or ""
 
-    # 优先找 outline 的 data-id（target=具体 data-id 比 target=body 更稳）
-    outline_id, outline_inner = find_outline_data_id(html)
-    if outline_id:
-        body_inner = outline_inner
-        target_for_body = outline_id
-    else:
-        body_inner = extract_body_inner(html)
-        target_for_body = "body"
-    if not body_inner:
-        log(f"  ! 没找到 outline 或 body，跳过")
+    # === 空白页检测 ===
+    if is_page_empty(body_inner):
+        if sec_id == protected_section_id:
+            log(f"  · 空页，但属保护分区（daily_push 目标），不删")
+            return "skip"
+        if not delete_empty:
+            log(f"  · 空页（未启 --delete-empty，跳过）")
+            return "skip"
+        if dry_run:
+            log(f"  [dry-run] 会删除空页")
+            return "deleted"
+        try:
+            delete_page_api(access_token, page_id)
+            log(f"  ✓ 已删除空页")
+            return "deleted"
+        except Exception as e:
+            log(f"  ! 删除空页失败：{e}")
+            return "fail"
+
+    # === 标题处理（仅 title PATCH，body 不动）===
+    new_title, title_changed = build_new_title(title, body_inner, created_iso)
+    if not title_changed:
+        log(f"  · 标题无需改，跳过")
         return "skip"
 
-    # === 应用规则 ===
-    # 1. 通用文本清理（编辑/版权声明锚点、文章原文+3行、头尾纯图）
-    new_body = body_xhtml._strip_promo(body_inner)
-    # 2. 图片规则（首图/中国保险学会全图/慧保天下激进/来源:/保观锚点）
-    new_body = apply_image_rules(new_body, source_label)
-    # 3. 剥用户标注（荧光笔背景、手写墨迹）
-    new_body = strip_annotations(new_body)
-    # 4. 字体字号统一
-    element_style = (
-        f"font-family:'{onenote.PAGE_FONT_FAMILY}';"
-        f"font-size:{onenote.PAGE_FONT_SIZE_PT}.0pt"
-    )
-    new_body = onenote._inject_inline_style(new_body, element_style)
-    new_body = onenote._wrap_text_in_span(new_body, element_style)
-
-    # === 新标题 ===
-    new_title, title_changed = build_new_title(title, new_body, created_iso)
-    body_changed = new_body.strip() != body_inner.strip()
-
-    if not body_changed and not title_changed:
-        log(f"  · 标题和正文都无变化，跳过")
-        return "skip"
-
-    log(f"  源:{source_label or '(未知)'}{' / 标题→ ' + new_title[:40] if title_changed else ''}")
     if dry_run:
-        log(f"  [dry-run] body {len(body_inner)} → {len(new_body)} 字"
-            f"{' / 标题改' if title_changed else ''}")
+        log(f"  [dry-run] 标题 → {new_title[:60]}")
         return "ok"
 
-    # OneNote PATCH 同一次同时改 title + body 会 500，拆成两次单独的 PATCH 调用
     try:
-        if body_changed:
-            patch_page(access_token, page_id, [{
-                "target": target_for_body,
-                "action": "replace",
-                "content": new_body,
-            }])
-        if title_changed:
-            patch_page(access_token, page_id, [{
-                "target": "title",
-                "action": "replace",
-                "content": f"<title>{new_title}</title>",
-            }])
-        log(f"  ✓ 已更新 (target={target_for_body})")
+        patch_page(access_token, page_id, [{
+            "target": "title",
+            "action": "replace",
+            "content": f"<title>{new_title}</title>",
+        }])
+        log(f"  ✓ 标题已改: {new_title[:60]}")
+        return "ok"
     except Exception as e:
-        log(f"  ! PATCH 失败 (target={target_for_body})：{e}")
+        log(f"  ! title PATCH 失败：{e}")
         return "fail"
-    return "ok"
 
 
 # --------- 范围（笔记本/分区）选择 ---------
@@ -590,6 +628,8 @@ def main():
                          '不传时进入交互式选择')
     ap.add_argument("--title-kw", default="", help="只处理标题含该关键字的页")
     ap.add_argument("--since", default="", help="只处理 YYMMDD 前缀 >= 该日期的页 (YYYY-MM-DD)")
+    ap.add_argument("--delete-empty", action="store_true",
+                    help="删除空白页（含无文字无图无附件）和处理完后变空的分区")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -672,13 +712,16 @@ def main():
         if ans == "n":
             return
 
-    biz_map = build_biz_map(log) if not args.dry_run else {}
+    protected_section_id = secrets.get("ONENOTE_SECTION_ID", "")
 
-    n_ok = n_skip = n_fail = 0
+    n_ok = n_skip = n_fail = n_del = 0
     for i, page in enumerate(pending, 1):
         log(f"\n[{i}/{len(pending)}]")
         try:
-            result = tidy_one_page(access_token, page, biz_map, args.dry_run, log)
+            result = tidy_one_page(
+                access_token, page, args.dry_run, log,
+                protected_section_id, args.delete_empty,
+            )
         except Exception:
             log(f"  ! 异常：{traceback.format_exc().splitlines()[-1]}")
             result = "fail"
@@ -686,6 +729,9 @@ def main():
             n_ok += 1
             if not args.dry_run:
                 done.add(page["id"])
+        elif result == "deleted":
+            n_del += 1
+            done.add(page["id"])
         elif result == "skip":
             n_skip += 1
             done.add(page["id"])
@@ -695,14 +741,45 @@ def main():
         if (i % 20) == 0 and not args.dry_run:
             state["done_page_ids"] = sorted(done)
             save_state(state)
-            log(f"  ✓ 进度保存（OK {n_ok} / 跳过 {n_skip} / 失败 {n_fail}）")
-        time.sleep(0.5)
+            log(f"  ✓ 进度保存（OK {n_ok} / 删 {n_del} / 跳过 {n_skip} / 失败 {n_fail}）")
+        time.sleep(0.3)
 
     if not args.dry_run:
         state["done_page_ids"] = sorted(done)
         save_state(state)
+
+    # 处理完页面后，扫一遍空分区
+    if args.delete_empty:
+        log("\n检查空分区...")
+        for nb in notebooks:
+            nb_name = nb.get("displayName", "")
+            for sec in nb.get("sections", []):
+                sec_id = sec.get("id", "")
+                sec_name = sec.get("displayName", "")
+                # scope 检查
+                if scopes is not None:
+                    hit = False
+                    for nb_spec, sec_spec in scopes:
+                        if nb_name == nb_spec and (sec_spec is None or sec_name == sec_spec):
+                            hit = True
+                            break
+                    if not hit:
+                        continue
+                if sec_id == protected_section_id:
+                    continue  # 保护 daily_push 目标分区
+                cnt = section_page_count(access_token, sec_id)
+                if cnt == 0:
+                    if args.dry_run:
+                        log(f"  [dry-run] 会删除空分区 [{nb_name} / {sec_name}]")
+                    else:
+                        try:
+                            delete_section_api(access_token, sec_id)
+                            log(f"  ✓ 已删除空分区 [{nb_name} / {sec_name}]")
+                        except Exception as e:
+                            log(f"  ! 删除分区失败 [{nb_name} / {sec_name}]：{e}")
+
     log("\n" + "=" * 64)
-    log(f"完成。原地更新 {n_ok}，跳过 {n_skip}，失败 {n_fail}")
+    log(f"完成。改标题 {n_ok}，删除 {n_del}，跳过 {n_skip}，失败 {n_fail}")
     log("=" * 64)
 
 

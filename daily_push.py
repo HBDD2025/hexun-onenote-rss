@@ -25,6 +25,7 @@ import signal
 import sys
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import body_xhtml
@@ -315,25 +316,35 @@ def push_one(access_token, section_id, dt, url, list_title, log,
     art_dt = parse_article_dt(publish_str, dt)
     final_title = build_page_title(art_dt, title or list_title)
 
-    # 下载所有图片，每张做 magic-byte 校验；失败的从 XHTML 里剔除并留文字标记
+    # 并行下载所有图片（4 路并发），单图超时由 hexun_lib.IMG_TIMEOUT 控制
     image_blobs = []         # 仅保留有效图，按原顺序
     valid_indices = []       # 原图序号 → 在 image_blobs 中的新序号
-    for i, img_url in enumerate(image_urls):
+
+    def _fetch_one(idx_url):
+        idx, u = idx_url
         try:
-            bts, ctype = hexun_lib.fetch_binary(img_url, referer=url)
-        except _ArticleTimeout:
-            # 单篇超时信号到了——直接往上抛，别被当成图片错误吞掉
-            raise
+            bts, ctype = hexun_lib.fetch_binary(u, referer=url)
+            return idx, u, bts, ctype, None
         except Exception as e:
-            log(f"  ! 图片下载失败 [{i}]：{img_url} → {e}")
-            bts, ctype = b"", None
+            return idx, u, b"", None, str(e)
+
+    if image_urls:
+        with ThreadPoolExecutor(max_workers=4) as ex:
+            results = list(ex.map(_fetch_one, list(enumerate(image_urls))))
+    else:
+        results = []
+    # 按原 idx 顺序处理（map 保证顺序）
+    for idx, u, bts, ctype, err in results:
+        if err:
+            log(f"  ! 图片下载失败 [{idx}]：{u[:80]} → {err}")
         is_img, sniffed = _detect_image(bts)
         if not is_img:
-            log(f"  ! 图片校验失败 [{i}] ({len(bts)}B ctype={ctype})：{img_url}")
+            if not err:
+                log(f"  ! 图片校验失败 [{idx}] ({len(bts)}B ctype={ctype})：{u[:80]}")
             continue
         new_idx = len(image_blobs)
         image_blobs.append((bts, sniffed or ctype))
-        valid_indices.append((i, new_idx))
+        valid_indices.append((idx, new_idx))
 
     # 重写 XHTML：失败的 img 替换成文字标记，幸存的 img 重新编号
     failed_set = {i for i in range(len(image_urls))} - {old for old, _ in valid_indices}

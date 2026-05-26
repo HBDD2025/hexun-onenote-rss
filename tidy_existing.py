@@ -8,12 +8,16 @@
   - 应用通用 文章原文+3行段落 规则
   - 应用各公众号的源特定规则（首图、来源后图、文章原文前图 等）
   - 重新注入字体字号（14pt 宋体）
-  - PATCH 替换 outline 内容（不删页，page id 不变，图片资源保留）
+  - PATCH 替换 body 内容（不删页，page id 不变）
+
+⚠️ 限制：PATCH API 不支持 multipart，原有图片（OneNote 资源链接）在 PATCH 后
+会失效（显示红叉）。所以本工具**把所有图片替换成"本处有图片"占位**——失去图，
+但避免红叉。要保住图就用 refresh_existing.py（删页 + 重抓源）。
 
 不会做的：
   - 不重新拉取原文（如果你需要从源完全重新生成，用 refresh_existing.py）
+  - 不保留图片（见上面 ⚠️）
   - 不调整 outline 宽度/位置（OneNote 一向不认）
-  - 不补 3 空段（已有就有，没有就没有）
 
 跑法（本地）：
 
@@ -131,11 +135,21 @@ def extract_body_inner(html):
 
 
 def apply_in_place_source_rules(html, source_label):
-    """在 OneNote HTML 上应用源特定规则（图都是真 OneNote 资源 URL，不再用 name:imgN）。"""
+    """在 OneNote HTML 上应用源特定规则。
+
+    重要：tidy 模式下，所有现存 <img>（src 是 graph.microsoft.com 资源链接）
+    在 PATCH 后都会失效显示红叉。所以**所有源**都先把所有图替换成占位文字，
+    然后才应用源特定的规则（首图/锚点删除等）。"""
+    # 先把所有 graph.microsoft.com 的 img（PATCH 后必失效）换成占位
+    html = re.sub(
+        r'<img\s[^>]*?\bsrc="https://graph\.microsoft\.com/[^"]+"[^>]*/?>',
+        PLACEHOLDER_TEXT, html,
+    )
+
     if not source_label:
         return html
 
-    # 中国保险学会：所有 <img> 替换为占位
+    # 中国保险学会：保险起见，再来一遍兜底全清
     if "中国保险学会" in source_label:
         return ALL_IMG_RE.sub(PLACEHOLDER_TEXT, html)
 

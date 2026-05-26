@@ -338,7 +338,7 @@ def push_one(access_token, section_id, dt, url, list_title, log,
     # 重写 XHTML：失败的 img 替换成文字标记，幸存的 img 重新编号
     failed_set = {i for i in range(len(image_urls))} - {old for old, _ in valid_indices}
     for old_i in sorted(failed_set):
-        xhtml = xhtml.replace(f'<img src="name:img{old_i}" />', '<p>[图片未能获取]</p>')
+        xhtml = xhtml.replace(f'<img src="name:img{old_i}" />', '<p>【本处有图片，但未能获取】</p>')
     # 把幸存图重新编号到 0..N-1
     # 用临时占位防止重号覆盖
     for old_i, new_i in valid_indices:

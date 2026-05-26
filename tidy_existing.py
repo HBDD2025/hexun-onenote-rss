@@ -1,29 +1,41 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-原地规整 OneNote 现有页面：仅对页面里现存 HTML 应用最新清理规则，不重新从源拉。
+原地规整 OneNote **整个账号所有笔记本所有分区的所有页面**。
+不重新从源拉，仅对页面里现存 HTML 应用最新清理规则。
 
-会做的：
-  - 剥编辑/责编/排版/版权声明/长按二维码 等末尾签名
-  - 应用通用 文章原文+3行段落 规则
-  - 应用各公众号的源特定规则（首图、来源后图、文章原文前图 等）
-  - 重新注入字体字号（14pt 宋体）
-  - PATCH 替换 body 内容（不删页，page id 不变）
+会做的（对每一页）：
+  - 通用文本清理：剥编辑/责编/排版/版权声明/长按二维码 等末尾签名；
+    "文章原文"+3行段落规则；头/尾纯图剥离
+  - 源特定规则（识别出 hexun / 公众号源时）：
+    * 首图替换为 「【本处已删首图】」（慧保天下 + 中国银行保险报 + 今日保 + 保契 + 13个精算师）
+    * 中国保险学会：全图替换为 「【此处有图片，但未下载成功】」
+    * 中国银行保险报：「来源:」/「来源：」 锚点段及之后全删
+    * 保观：「保观 | 聚焦保险创新」 后第 1 图占位
+    * 保险一哥：「文章原文」 前最后 1 图占位
+  - 兜底：所有剩余 <img> 一律换 「【此处有图片，但未下载成功】」 占位
+  - 重新注入字号字体（14pt 宋体）
+  - PATCH replace body（不删页，page id 不变）
 
-⚠️ 限制：PATCH API 不支持 multipart，原有图片（OneNote 资源链接）在 PATCH 后
-会失效（显示红叉）。所以本工具**把所有图片替换成"本处有图片"占位**——失去图，
-但避免红叉。要保住图就用 refresh_existing.py（删页 + 重抓源）。
-
-不会做的：
-  - 不重新拉取原文（如果你需要从源完全重新生成，用 refresh_existing.py）
-  - 不保留图片（见上面 ⚠️）
-  - 不调整 outline 宽度/位置（OneNote 一向不认）
+⚠️ 由于 PATCH API 不支持 multipart 上传图片，原有图片（含成功下载过的）会一律
+变成占位文字。这是 OneNote 的硬限制，无法保住图。要保住图就用 refresh_existing.py
+（删页 + 重抓源）。
 
 跑法（本地）：
 
     cd ~/Desktop/hexun-onenote-rss
     git pull
-    python3 tidy_existing.py [--limit N] [--source 关键字] [--since YYYY-MM-DD] [--dry-run]
+
+    # 试 3 条
+    python3 tidy_existing.py --limit 3 --dry-run
+    python3 tidy_existing.py --limit 3
+
+    # 全量
+    python3 tidy_existing.py
+
+    # 只规整某笔记本/分区
+    python3 tidy_existing.py --notebook "Chen's"
+    python3 tidy_existing.py --section "RSS syn2"
 """
 
 import argparse
@@ -53,7 +65,9 @@ URL_IN_BODY_RE = re.compile(
 )
 BIZ_RE = re.compile(r'__biz=([^&]+)')
 ALL_IMG_RE = re.compile(r'<img\s[^>]*/?>', re.I)
-PLACEHOLDER_TEXT = '<p>【本处有图片，但未能获取】</p>'
+# 跟 daily_push.py 保持一致
+PLACEHOLDER_FAILED = '<p>【此处有图片，但未下载成功】</p>'
+PLACEHOLDER_FIRST_STRIPPED = '<p>【本处已删首图】</p>'
 
 
 def log(msg):
@@ -70,12 +84,32 @@ def load_secrets():
 
 
 def list_pages(access_token, section_id):
+    """列单分区的所有页（保留兼容）"""
     pages = []
     url = (f"{onenote.GRAPH_BASE}/me/onenote/sections/{section_id}/pages"
            f"?$top=100&$select=id,title,createdDateTime")
     while url:
         data = onenote._graph_get(access_token, url)
         pages.extend(data.get("value", []))
+        url = data.get("@odata.nextLink")
+    return pages
+
+
+def list_all_pages(access_token, log):
+    """列整个 OneNote 账号的所有页（跨所有笔记本所有分区）。
+    返回每页含 id/title/createdDateTime/parentSection/parentNotebook 信息。"""
+    pages = []
+    url = (f"{onenote.GRAPH_BASE}/me/onenote/pages"
+           f"?$top=100&$expand=parentSection($expand=parentNotebook)"
+           f"&$select=id,title,createdDateTime")
+    fetched = 0
+    while url:
+        data = onenote._graph_get(access_token, url)
+        batch = data.get("value", [])
+        pages.extend(batch)
+        fetched += len(batch)
+        if fetched % 200 == 0 or not data.get("@odata.nextLink"):
+            log(f"  …已列 {fetched} 页")
         url = data.get("@odata.nextLink")
     return pages
 
@@ -135,79 +169,79 @@ def extract_body_inner(html):
 
 
 def apply_in_place_source_rules(html, source_label):
-    """在 OneNote HTML 上应用源特定规则。
+    """在 OneNote HTML 上应用源特定规则 + 兜底图片占位。
 
-    重要：tidy 模式下，所有现存 <img>（src 是 graph.microsoft.com 资源链接）
-    在 PATCH 后都会失效显示红叉。所以**所有源**都先把所有图替换成占位文字，
-    然后才应用源特定的规则（首图/锚点删除等）。"""
-    # 先把所有 graph.microsoft.com 的 img（PATCH 后必失效）换成占位
-    html = re.sub(
-        r'<img\s[^>]*?\bsrc="https://graph\.microsoft\.com/[^"]+"[^>]*/?>',
-        PLACEHOLDER_TEXT, html,
-    )
+    顺序：
+      1. 源特定规则（首图占 `【本处已删首图】`、锚点处理等）—— 在还有 <img> 标签时跑
+      2. 兜底：剩下的 <img> 一律替换成 `【此处有图片，但未下载成功】`
+    """
+    if source_label:
+        # 1a. 中国保险学会：全图替换占位
+        if "中国保险学会" in source_label:
+            html = ALL_IMG_RE.sub(PLACEHOLDER_FAILED, html)
 
-    if not source_label:
-        return html
+        # 1b. 首图替换为「本处已删首图」（慧保天下激进 / 其他简单）
+        aggressive = "慧保天下" in source_label
+        simple_first = any(s in source_label for s in
+                           ("中国银行保险报", "今日保", "保契", "13个精算师"))
+        if aggressive:
+            m = ALL_IMG_RE.search(html)
+            if m:
+                after = html[m.end():]
+                after = re.sub(
+                    r'^\s*(?:<br\s*/?>\s*)*<p[^>]*>.*?</p>\s*',
+                    '', after, count=1, flags=re.S,
+                )
+                html = PLACEHOLDER_FIRST_STRIPPED + after
+        elif simple_first:
+            m = ALL_IMG_RE.search(html)
+            if m:
+                p_match = re.search(
+                    r'<p[^>]*>\s*' + re.escape(html[m.start():m.end()]) + r'\s*</p>',
+                    html, re.S,
+                )
+                if p_match:
+                    html = (html[:p_match.start()] + PLACEHOLDER_FIRST_STRIPPED
+                            + html[p_match.end():])
+                else:
+                    html = (html[:m.start()] + PLACEHOLDER_FIRST_STRIPPED
+                            + html[m.end():])
 
-    # 中国保险学会：保险起见，再来一遍兜底全清
-    if "中国保险学会" in source_label:
-        return ALL_IMG_RE.sub(PLACEHOLDER_TEXT, html)
+        # 1c. 文本锚点规则
+        rules = [
+            ("中国银行保险报", "来源:", "all_after"),   # 半角先试（substring 重合 全角时优先）
+            ("中国银行保险报", "来源：", "all_after"),
+            ("保观",          "保观 | 聚焦保险创新", "next_img"),
+            ("保险一哥",       "文章原文", "prev_img"),
+        ]
+        for src_kw, anchor, action in rules:
+            if src_kw not in source_label:
+                continue
+            idx = html.find(anchor)
+            if idx < 0:
+                continue
+            if action == "all_after":
+                # 砍掉锚点所在 <p> 的开始位置到末尾
+                p_start = html.rfind('<p', 0, idx)
+                html = html[:p_start] if p_start >= 0 else html[:idx]
+                break
+            elif action == "next_img":
+                head = html[:idx + len(anchor)]
+                tail = html[idx + len(anchor):]
+                tail = ALL_IMG_RE.sub(PLACEHOLDER_FAILED, tail, count=1)
+                html = head + tail
+            elif action == "prev_img":
+                before = html[:idx]
+                after = html[idx:]
+                last_img = None
+                for m in ALL_IMG_RE.finditer(before):
+                    last_img = m
+                if last_img:
+                    html = (before[:last_img.start()] + PLACEHOLDER_FAILED
+                            + before[last_img.end():] + after)
 
-    # 慧保天下：删 [开头到首图（含）] + [首图后第一段]
-    if "慧保天下" in source_label:
-        m = ALL_IMG_RE.search(html)
-        if m:
-            after = html[m.end():]
-            after = re.sub(
-                r'^\s*(?:<br\s*/?>\s*)*<p[^>]*>.*?</p>\s*',
-                '', after, count=1, flags=re.S,
-            )
-            html = after
-    elif any(s in source_label for s in ("中国银行保险报", "今日保", "保契", "13个精算师")):
-        # 简单首图删除
-        m = ALL_IMG_RE.search(html)
-        if m:
-            # 看首图是否独占一个 <p>
-            p_match = re.search(
-                r'<p[^>]*>\s*' + re.escape(html[m.start():m.end()]) + r'\s*</p>',
-                html, re.S,
-            )
-            if p_match:
-                html = html[:p_match.start()] + html[p_match.end():]
-            else:
-                html = html[:m.start()] + html[m.end():]
-
-    # 文本锚点规则
-    rules = [
-        ("中国银行保险报", "来源：", "imgs_after"),
-        ("中国银行保险报", "来源:", "imgs_after"),
-        ("保观",          "保观 | 聚焦保险创新", "next_img"),
-        ("保险一哥",       "文章原文", "prev_img"),
-    ]
-    for src_kw, anchor, action in rules:
-        if src_kw not in source_label:
-            continue
-        idx = html.find(anchor)
-        if idx < 0:
-            continue
-        if action == "imgs_after":
-            head = html[:idx + len(anchor)]
-            tail = html[idx + len(anchor):]
-            tail = ALL_IMG_RE.sub(PLACEHOLDER_TEXT, tail)
-            html = head + tail
-        elif action == "next_img":
-            head = html[:idx + len(anchor)]
-            tail = html[idx + len(anchor):]
-            tail = ALL_IMG_RE.sub('', tail, count=1)
-            html = head + tail
-        elif action == "prev_img":
-            before = html[:idx]
-            after = html[idx:]
-            last_img = None
-            for m in ALL_IMG_RE.finditer(before):
-                last_img = m
-            if last_img:
-                html = before[:last_img.start()] + before[last_img.end():] + after
+    # 2. 兜底：所有剩余 <img>（包括 graph.microsoft.com 资源 / 任何 src）一律占位
+    html = ALL_IMG_RE.sub(PLACEHOLDER_FAILED, html)
     return html
 
 
@@ -247,7 +281,10 @@ def save_state(state):
 def tidy_one_page(access_token, page, biz_map, dry_run, log):
     page_id = page["id"]
     title = page.get("title", "")
-    log(f"→ {title[:55]}")
+    # 显示笔记本 + 分区 + 标题
+    sec = (page.get("parentSection") or {}).get("displayName", "?")
+    nb = ((page.get("parentSection") or {}).get("parentNotebook") or {}).get("displayName", "?")
+    log(f"→ [{nb} / {sec}] {title[:50]}")
 
     try:
         html = get_page_content(access_token, page_id, include_ids=False)
@@ -298,15 +335,18 @@ def tidy_one_page(access_token, page, biz_map, dry_run, log):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="原地规整 OneNote 现有页面")
+    ap = argparse.ArgumentParser(description="原地规整 OneNote 所有笔记本所有分区的所有页面")
     ap.add_argument("--limit", type=int, default=0)
-    ap.add_argument("--source", default="")
-    ap.add_argument("--since", default="")
+    ap.add_argument("--notebook", default="", help="只处理笔记本名包含该关键字的页")
+    ap.add_argument("--section", default="", help="只处理分区名包含该关键字的页")
+    ap.add_argument("--title", default="", help="只处理标题含该关键字的页")
+    ap.add_argument("--since", default="", help="只处理 YYMMDD 前缀 >= 该日期的页 (YYYY-MM-DD)")
+    ap.add_argument("--single-section-id", default="", help="只处理某个分区（用 section id）")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
     print("=" * 64)
-    print("OneNote 原地规整")
+    print("OneNote 原地规整（整个账号所有页面）")
     print("=" * 64)
 
     secrets = load_secrets()
@@ -314,26 +354,42 @@ def main():
     access_token, new_refresh = onenote.refresh_access_token(
         secrets["AZURE_CLIENT_ID"], secrets["MS_REFRESH_TOKEN"]
     )
-    section_id = secrets["ONENOTE_SECTION_ID"]
     if new_refresh != secrets["MS_REFRESH_TOKEN"]:
         secrets["MS_REFRESH_TOKEN"] = new_refresh
         with open(SECRETS_PATH, "w", encoding="utf-8") as f:
             json.dump(secrets, f, indent=2, ensure_ascii=False)
         log("refresh_token 已更新本地副本")
 
-    log("列出分区下所有页面...")
-    pages = list_pages(access_token, section_id)
+    if args.single_section_id:
+        log(f"列指定分区 {args.single_section_id[:20]}… 下所有页面...")
+        pages = list_pages(access_token, args.single_section_id)
+    else:
+        log("列整个 OneNote 账号所有页面（跨所有笔记本/分区）...")
+        pages = list_all_pages(access_token, log)
     log(f"  共 {len(pages)} 页")
 
-    if args.source:
-        pages = [p for p in pages if args.source in p.get("title", "")]
-        log(f"  按 source 过滤后：{len(pages)}")
+    if args.notebook:
+        before = len(pages)
+        pages = [p for p in pages
+                 if args.notebook in ((p.get("parentSection") or {})
+                                        .get("parentNotebook") or {}).get("displayName", "")]
+        log(f"  按 notebook 过滤：{before} → {len(pages)}")
+    if args.section:
+        before = len(pages)
+        pages = [p for p in pages
+                 if args.section in (p.get("parentSection") or {}).get("displayName", "")]
+        log(f"  按 section 过滤：{before} → {len(pages)}")
+    if args.title:
+        before = len(pages)
+        pages = [p for p in pages if args.title in p.get("title", "")]
+        log(f"  按 title 过滤：{before} → {len(pages)}")
     if args.since:
         try:
             since_dt = datetime.strptime(args.since, "%Y-%m-%d").date()
             since_prefix = since_dt.strftime("%y%m%d")
+            before = len(pages)
             pages = [p for p in pages if (p.get("title", "")[:6] or "000000") >= since_prefix]
-            log(f"  按 since 过滤后：{len(pages)}")
+            log(f"  按 since 过滤：{before} → {len(pages)}")
         except ValueError:
             print(f"--since 日期格式错")
             sys.exit(1)

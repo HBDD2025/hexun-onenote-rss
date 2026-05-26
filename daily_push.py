@@ -299,6 +299,9 @@ def push_one(access_token, section_id, dt, url, list_title, log,
     for i, img_url in enumerate(image_urls):
         try:
             bts, ctype = hexun_lib.fetch_binary(img_url, referer=url)
+        except _ArticleTimeout:
+            # 单篇超时信号到了——直接往上抛，别被当成图片错误吞掉
+            raise
         except Exception as e:
             log(f"  ! 图片下载失败 [{i}]：{img_url} → {e}")
             bts, ctype = b"", None

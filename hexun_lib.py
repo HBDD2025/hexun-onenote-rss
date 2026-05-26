@@ -28,7 +28,10 @@ LIST_URLS = [
 
 RETRIES = 3       # 通用重试次数（文章 HTML / 列表页）
 IMG_RETRIES = 1   # 图片专用：fail fast，下不到就放弃
-IMG_TIMEOUT = 8   # 图片单次请求超时（秒），压紧
+IMG_TIMEOUT = 5   # 图片单次请求超时（秒），压紧
+
+# 已知一定会 405 的 URL 模式（jintiankansha 的 VIP 限制图），直接跳过省时间
+IMG_BLOCKED_PATTERNS = ("jintiankansha.me/rss_static/",)
 
 
 def _new_request(url, cookies=None, referer=None):
@@ -84,6 +87,10 @@ def fetch(url, referer=None):
 
 def fetch_binary(url, referer=None):
     """Image download — fail fast。最多两次：第一次裸下，遇到 EO_Bot 挑战就解 cookie 再来一次。"""
+    # 已知必 fail 的 URL（如 jintiankansha rss_static 需 VIP cookie，GitHub IP 拿不到），直接报错
+    for pat in IMG_BLOCKED_PATTERNS:
+        if pat in url:
+            raise RuntimeError(f"已知受限源，跳过：{pat}")
     last_err = None
     cookies = None
     # 最多两次：一次裸 + 一次带 cookie

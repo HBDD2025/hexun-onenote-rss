@@ -104,18 +104,33 @@ def list_sections(access_token):
 
 # ---------------------- Graph：发布页面（multipart） ----------------------
 
+# ---- 页面样式（所有新页面统一）----
+PAGE_FONT_FAMILY = '"SimSun", "宋体", serif'   # 宋体
+PAGE_FONT_SIZE_PT = 14                          # 14 pt
+PAGE_OUTLINE_WIDTH_PX = 900                     # outline 宽度（默认约 600，加宽 50% 让每行字数多 ~25-50%）
+
+
 def create_page(access_token, section_id, title, xhtml_body, images, created_iso=None):
     """
     把一篇带图片的 OneNote 页面发布到指定分区。
     - xhtml_body: <body>...</body> 之间的内容（HTML 片段）
     - images: [(bytes, content_type), ...] 对应 xhtml 中 name:img0, name:img1, ...
     - created_iso: 设置页面 created 元数据（ISO8601 + 时区）
+
+    所有正文统一包到一个加宽的 outline div 里，应用 14pt 宋体；OneNote 会按这个
+    width 渲染（默认约 600px，这里加宽到 900px，每行字数提升 ~25-50%）。
     """
     boundary = "----OneNoteBoundary" + secrets.token_hex(16)
     crlf = b"\r\n"
 
     # Presentation 部分（XHTML 全页）
     meta_created = f'<meta name="created" content="{created_iso}"/>' if created_iso else ""
+    outline_style = (
+        f"position:absolute; left:48px; top:120px; "
+        f"width:{PAGE_OUTLINE_WIDTH_PX}px; "
+        f"font-family:{PAGE_FONT_FAMILY}; "
+        f"font-size:{PAGE_FONT_SIZE_PT}pt;"
+    )
     presentation_html = (
         '<!DOCTYPE html>\n'
         '<html xmlns="http://www.w3.org/1999/xhtml">\n'
@@ -124,7 +139,9 @@ def create_page(access_token, section_id, title, xhtml_body, images, created_iso
         f'  {meta_created}\n'
         '</head>\n'
         '<body>\n'
+        f'<div style="{outline_style}">\n'
         f'{xhtml_body}\n'
+        '</div>\n'
         '</body>\n'
         '</html>\n'
     ).encode("utf-8")

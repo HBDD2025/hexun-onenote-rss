@@ -98,35 +98,34 @@ def list_pages(access_token, section_id):
     return pages
 
 
-def list_all_pages(access_token, log):
-    """列整个 OneNote 账号的所有页（跨所有笔记本所有分区）。
-    /pages 端点不支持 $expand=parentNotebook，故只展开 parentSection；
-    parentNotebook 信息后续由调用者通过 section_id → notebook_name 映射补上。"""
+def list_all_pages(access_token, notebooks, log, scopes=None):
+    """逐分区列页。可选 scopes 提前过滤，避免无谓 API 调用。
+    每页注入 parentSection 和 parentNotebook 信息。"""
     pages = []
-    url = f"{onenote.GRAPH_BASE}/me/onenote/pages?$top=100&$expand=parentSection"
-    fetched = 0
-    while url:
-        data = onenote._graph_get(access_token, url)
-        batch = data.get("value", [])
-        pages.extend(batch)
-        fetched += len(batch)
-        if fetched % 200 == 0 or not data.get("@odata.nextLink"):
-            log(f"  …已列 {fetched} 页")
-        url = data.get("@odata.nextLink")
-    return pages
-
-
-def attach_notebook_info(pages, notebooks):
-    """根据 notebooks→sections 结构，为每个 page 补上 parentNotebook 字段。"""
-    sec_to_nb = {}
     for nb in notebooks:
         nb_name = nb.get("displayName", "")
         for sec in nb.get("sections", []):
-            sec_to_nb[sec.get("id")] = nb_name
-    for p in pages:
-        sec = p.get("parentSection") or {}
-        nb_name = sec_to_nb.get(sec.get("id"), "")
-        p["parentNotebook"] = {"displayName": nb_name}
+            sec_id = sec.get("id", "")
+            sec_name = sec.get("displayName", "")
+            # 范围过滤
+            if scopes is not None:
+                hit = False
+                for nb_spec, sec_spec in scopes:
+                    if nb_name == nb_spec and (sec_spec is None or sec_name == sec_spec):
+                        hit = True
+                        break
+                if not hit:
+                    continue
+            try:
+                sec_pages = list_pages(access_token, sec_id)
+            except Exception as e:
+                log(f"  ! [{nb_name} / {sec_name}] 列页失败：{e}")
+                continue
+            for p in sec_pages:
+                p["parentSection"] = {"id": sec_id, "displayName": sec_name}
+                p["parentNotebook"] = {"displayName": nb_name}
+            pages.extend(sec_pages)
+            log(f"  [{nb_name} / {sec_name}] {len(sec_pages)} 页 (累计 {len(pages)})")
     return pages
 
 
@@ -595,11 +594,9 @@ def main():
         else:
             log("已选：全部")
 
-    log("\n列所有页面...")
-    pages = list_all_pages(access_token, log)
+    log("\n列范围内所有页面（按分区遍历）...")
+    pages = list_all_pages(access_token, notebooks, log, scopes=scopes)
     log(f"  共 {len(pages)} 页")
-    # 把 notebook 名称挂到每个 page 上（OneNote API 不支持 /pages 上 expand parentNotebook）
-    attach_notebook_info(pages, notebooks)
 
     # 范围过滤
     before = len(pages)

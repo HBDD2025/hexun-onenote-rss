@@ -231,17 +231,50 @@ def _detect_image(bts):
 
 
 # 这些公众号每篇文章首图永远是 banner/logo，强制删除
-STRIP_FIRST_IMG_SOURCES = ("慧保天下", "中国银行保险报", "今日保")
+STRIP_FIRST_IMG_SOURCES = ("慧保天下", "中国银行保险报", "今日保", "保契")
+# 这些更激进：除了删首图，还要删 [首图前的所有内容] + [首图后第一段]
+STRIP_AGGRESSIVE_SOURCES = ("慧保天下",)
+
+
+def _renumber_imgs(xhtml, total_after):
+    """把 name:img1..N 重命名为 name:img0..N-1（用临时占位防覆盖）。"""
+    for old_i in range(1, total_after + 1):
+        xhtml = xhtml.replace(
+            f'<img src="name:img{old_i}" />',
+            f'<img src="name:_RENUM{old_i}_" />',
+        )
+    for old_i in range(1, total_after + 1):
+        xhtml = xhtml.replace(
+            f'<img src="name:_RENUM{old_i}_" />',
+            f'<img src="name:img{old_i - 1}" />',
+        )
+    return xhtml
 
 
 def _maybe_strip_first_image(xhtml, image_urls, source_label):
-    """对特定公众号，把正文第一张 <img> 强制剥掉并将后续 name:imgN 重新编号。
-    返回 (new_xhtml, new_image_urls)。如果不匹配 / 没图，原样返回。"""
+    """对特定公众号删首图（含周边）。返回 (new_xhtml, new_image_urls)。"""
     if not source_label or not image_urls:
         return xhtml, image_urls
-    if not any(name in source_label for name in STRIP_FIRST_IMG_SOURCES):
+    aggressive = any(name in source_label for name in STRIP_AGGRESSIVE_SOURCES)
+    simple = any(name in source_label for name in STRIP_FIRST_IMG_SOURCES)
+    if not (aggressive or simple):
         return xhtml, image_urls
-    # 优先匹配整段 <p><img/></p>，否则匹配裸 <img/>
+
+    if aggressive:
+        # 慧保天下：删 [开头到首图（含）] + [首图后第一个 <p>...</p>]
+        m = re.search(r'<img\s+src="name:img0"\s*/>', xhtml)
+        if m:
+            after = xhtml[m.end():]
+            # 砍掉紧跟的第一段（允许夹有空白/<br/>）
+            after = re.sub(
+                r'^\s*(?:<br\s*/?>\s*)*<p[^>]*>.*?</p>\s*',
+                '', after, count=1, flags=re.S,
+            )
+            new_xhtml = _renumber_imgs(after, len(image_urls) - 1)
+            return new_xhtml, image_urls[1:]
+        # 没找到 img0，退回 simple
+
+    # 简单模式：只删首图
     new_xhtml, n = re.subn(
         r'<p[^>]*>\s*<img\s+src="name:img0"\s*/>\s*</p>\s*',
         '', xhtml, count=1,
@@ -251,19 +284,8 @@ def _maybe_strip_first_image(xhtml, image_urls, source_label):
             r'<img\s+src="name:img0"\s*/>\s*', '', xhtml, count=1,
         )
     if n == 0:
-        # 没找到首图（可能 _strip_promo 已经剥过了），不改动
         return xhtml, image_urls
-    # 重编号：img1→img0, img2→img1, ...（先用临时占位防止覆盖）
-    for old_i in range(1, len(image_urls)):
-        new_xhtml = new_xhtml.replace(
-            f'<img src="name:img{old_i}" />',
-            f'<img src="name:_RENUM{old_i}_" />',
-        )
-    for old_i in range(1, len(image_urls)):
-        new_xhtml = new_xhtml.replace(
-            f'<img src="name:_RENUM{old_i}_" />',
-            f'<img src="name:img{old_i - 1}" />',
-        )
+    new_xhtml = _renumber_imgs(new_xhtml, len(image_urls) - 1)
     return new_xhtml, image_urls[1:]
 
 

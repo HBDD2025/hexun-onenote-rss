@@ -5,3 +5,4 @@ hexun-onenote-secrets.json
 ~hexun-onenote-secrets.json
 _new_refresh_token.tmp
 refresh_state.json
+tidy_state.json

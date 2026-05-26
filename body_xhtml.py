@@ -168,6 +168,23 @@ def _strip_promo(xhtml):
     if cut_at is not None:
         xhtml = xhtml[:cut_at]
 
+    # 1b. 通用规则：如含"文章原文"，倒推找最后一段 ≥40 字（够 3 行）的 <p>，砍掉之后所有
+    if "文章原文" in xhtml:
+        end_pos = xhtml.find("文章原文")
+        paragraphs = list(re.finditer(r'<p[^>]*>(.*?)</p>', xhtml[:end_pos], re.S))
+        last_cut = None
+        for m in reversed(paragraphs):
+            inner = m.group(1)
+            text = re.sub(r'<[^>]+>', '', inner)
+            text = re.sub(r'\s+', '', text)
+            if len(text) >= 40:
+                last_cut = m.end()
+                break
+        if last_cut is not None:
+            xhtml = xhtml[:last_cut]
+        else:
+            xhtml = xhtml[:end_pos]
+
     # 2. 尾部：去掉残余的纯图/空段落
     while True:
         m = re.search(

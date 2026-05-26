@@ -231,63 +231,118 @@ def _detect_image(bts):
     return False, None
 
 
-# 这些公众号每篇文章首图永远是 banner/logo，强制删除
-STRIP_FIRST_IMG_SOURCES = ("慧保天下", "中国银行保险报", "今日保", "保契")
-# 这些更激进：除了删首图，还要删 [首图前的所有内容] + [首图后第一段]
+# ---------- 源特定规则 ----------
+
+# 每篇文章首图永远是 banner/logo，强制删除
+STRIP_FIRST_IMG_SOURCES = ("慧保天下", "中国银行保险报", "今日保", "保契", "13个精算师")
+# 慧保天下：除了删首图，还要删 [首图前的所有内容] + [首图后第一段]
 STRIP_AGGRESSIVE_SOURCES = ("慧保天下",)
+# 全部图删除
+STRIP_ALL_IMG_SOURCES = ("中国保险学会",)
+# 按文本锚点删图。每条 (source_kw, anchor_text, action)
+# action:
+#   "imgs_after"  → anchor 之后所有 <img/> 删除
+#   "next_img"    → anchor 之后第一张 <img/> 删除
+#   "prev_img"    → anchor 之前最后一张 <img/> 删除
+SOURCE_TEXT_RULES = (
+    ("中国银行保险报", "来源：",            "imgs_after"),
+    ("中国银行保险报", "来源:",             "imgs_after"),
+    ("保观",          "保观 | 聚焦保险创新", "next_img"),
+    ("保险一哥",       "文章原文",            "prev_img"),
+)
 
 
-def _renumber_imgs(xhtml, total_after):
-    """把 name:img1..N 重命名为 name:img0..N-1（用临时占位防覆盖）。"""
-    for old_i in range(1, total_after + 1):
-        xhtml = xhtml.replace(
-            f'<img src="name:img{old_i}" />',
-            f'<img src="name:_RENUM{old_i}_" />',
-        )
-    for old_i in range(1, total_after + 1):
-        xhtml = xhtml.replace(
-            f'<img src="name:_RENUM{old_i}_" />',
-            f'<img src="name:img{old_i - 1}" />',
-        )
-    return xhtml
+def _drop_img_in_xhtml(xhtml, action_match_re):
+    """删 xhtml 里第一个 <img/> 标签，标签由 action_match_re 指定（应捕获 name:imgN 引用）。
+    返回 (new_xhtml, did_strip)"""
+    m = action_match_re.search(xhtml)
+    if not m:
+        return xhtml, False
+    return xhtml[:m.start()] + xhtml[m.end():], True
 
 
-def _maybe_strip_first_image(xhtml, image_urls, source_label):
-    """对特定公众号删首图（含周边）。返回 (new_xhtml, new_image_urls)。"""
+_IMG_TAG_RE = re.compile(r'<img\s+src="name:img\d+"\s*/>')
+
+
+def _apply_source_rules(xhtml, image_urls, source_label):
+    """统一应用所有源特定剥图规则。最后统一重编号。"""
     if not source_label or not image_urls:
         return xhtml, image_urls
-    aggressive = any(name in source_label for name in STRIP_AGGRESSIVE_SOURCES)
-    simple = any(name in source_label for name in STRIP_FIRST_IMG_SOURCES)
-    if not (aggressive or simple):
-        return xhtml, image_urls
 
+    # 1. 中国保险学会：全图删除
+    if any(s in source_label for s in STRIP_ALL_IMG_SOURCES):
+        xhtml = _IMG_TAG_RE.sub('<p>【本处有图片，但未能获取】</p>', xhtml)
+        return xhtml, []
+
+    # 2. 首图删除（含激进版）
+    aggressive = any(s in source_label for s in STRIP_AGGRESSIVE_SOURCES)
+    simple_first = any(s in source_label for s in STRIP_FIRST_IMG_SOURCES)
     if aggressive:
-        # 慧保天下：删 [开头到首图（含）] + [首图后第一个 <p>...</p>]
         m = re.search(r'<img\s+src="name:img0"\s*/>', xhtml)
         if m:
             after = xhtml[m.end():]
-            # 砍掉紧跟的第一段（允许夹有空白/<br/>）
+            # 砍掉紧跟的第一段
             after = re.sub(
                 r'^\s*(?:<br\s*/?>\s*)*<p[^>]*>.*?</p>\s*',
                 '', after, count=1, flags=re.S,
             )
-            new_xhtml = _renumber_imgs(after, len(image_urls) - 1)
-            return new_xhtml, image_urls[1:]
-        # 没找到 img0，退回 simple
-
-    # 简单模式：只删首图
-    new_xhtml, n = re.subn(
-        r'<p[^>]*>\s*<img\s+src="name:img0"\s*/>\s*</p>\s*',
-        '', xhtml, count=1,
-    )
-    if n == 0:
+            xhtml = after
+    elif simple_first:
+        # 优先匹配整段 <p><img/></p>
         new_xhtml, n = re.subn(
-            r'<img\s+src="name:img0"\s*/>\s*', '', xhtml, count=1,
+            r'<p[^>]*>\s*<img\s+src="name:img0"\s*/>\s*</p>\s*',
+            '', xhtml, count=1,
         )
-    if n == 0:
-        return xhtml, image_urls
-    new_xhtml = _renumber_imgs(new_xhtml, len(image_urls) - 1)
-    return new_xhtml, image_urls[1:]
+        if n == 0:
+            new_xhtml = re.sub(
+                r'<img\s+src="name:img0"\s*/>\s*', '', xhtml, count=1,
+            )
+        xhtml = new_xhtml
+
+    # 3. 文本锚点规则
+    for src_kw, anchor, action in SOURCE_TEXT_RULES:
+        if src_kw not in source_label:
+            continue
+        idx = xhtml.find(anchor)
+        if idx < 0:
+            continue
+        if action == "imgs_after":
+            head = xhtml[:idx + len(anchor)]
+            tail = xhtml[idx + len(anchor):]
+            tail = _IMG_TAG_RE.sub('<p>【本处有图片，但未能获取】</p>', tail)
+            xhtml = head + tail
+        elif action == "next_img":
+            head = xhtml[:idx + len(anchor)]
+            tail = xhtml[idx + len(anchor):]
+            tail = _IMG_TAG_RE.sub('', tail, count=1)
+            xhtml = head + tail
+        elif action == "prev_img":
+            before = xhtml[:idx]
+            after = xhtml[idx:]
+            # 找最后一个 img 在 before 中
+            last_img = None
+            for m in _IMG_TAG_RE.finditer(before):
+                last_img = m
+            if last_img:
+                xhtml = before[:last_img.start()] + before[last_img.end():] + after
+
+    # 4. 最终重编号：根据 xhtml 里剩下的 name:imgN 引用，连续编号 0..K-1，过滤 image_urls
+    used = sorted(set(int(m.group(1)) for m in re.finditer(r'name:img(\d+)', xhtml)))
+    if not used:
+        return xhtml, []
+    if used == list(range(len(used))) and len(used) == len(image_urls):
+        return xhtml, image_urls  # 没改变，原样
+    # 用临时占位防覆盖
+    for old in used:
+        xhtml = xhtml.replace(f'name:img{old}', f'name:_FIN{old}_')
+    for new, old in enumerate(used):
+        xhtml = xhtml.replace(f'name:_FIN{old}_', f'name:img{new}')
+    new_urls = [image_urls[old] for old in used if old < len(image_urls)]
+    return xhtml, new_urls
+
+
+# 兼容老函数名（保持外部接口稳定）
+_maybe_strip_first_image = _apply_source_rules
 
 
 def push_one(access_token, section_id, dt, url, list_title, log,

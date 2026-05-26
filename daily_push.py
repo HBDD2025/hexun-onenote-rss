@@ -230,6 +230,43 @@ def _detect_image(bts):
     return False, None
 
 
+# 这些公众号每篇文章首图永远是 banner/logo，强制删除
+STRIP_FIRST_IMG_SOURCES = ("慧保天下", "中国银行保险报", "今日保")
+
+
+def _maybe_strip_first_image(xhtml, image_urls, source_label):
+    """对特定公众号，把正文第一张 <img> 强制剥掉并将后续 name:imgN 重新编号。
+    返回 (new_xhtml, new_image_urls)。如果不匹配 / 没图，原样返回。"""
+    if not source_label or not image_urls:
+        return xhtml, image_urls
+    if not any(name in source_label for name in STRIP_FIRST_IMG_SOURCES):
+        return xhtml, image_urls
+    # 优先匹配整段 <p><img/></p>，否则匹配裸 <img/>
+    new_xhtml, n = re.subn(
+        r'<p[^>]*>\s*<img\s+src="name:img0"\s*/>\s*</p>\s*',
+        '', xhtml, count=1,
+    )
+    if n == 0:
+        new_xhtml, n = re.subn(
+            r'<img\s+src="name:img0"\s*/>\s*', '', xhtml, count=1,
+        )
+    if n == 0:
+        # 没找到首图（可能 _strip_promo 已经剥过了），不改动
+        return xhtml, image_urls
+    # 重编号：img1→img0, img2→img1, ...（先用临时占位防止覆盖）
+    for old_i in range(1, len(image_urls)):
+        new_xhtml = new_xhtml.replace(
+            f'<img src="name:img{old_i}" />',
+            f'<img src="name:_RENUM{old_i}_" />',
+        )
+    for old_i in range(1, len(image_urls)):
+        new_xhtml = new_xhtml.replace(
+            f'<img src="name:_RENUM{old_i}_" />',
+            f'<img src="name:img{old_i - 1}" />',
+        )
+    return new_xhtml, image_urls[1:]
+
+
 def push_one(access_token, section_id, dt, url, list_title, log,
              prefetched_content=None, source_label=None):
     """
@@ -251,6 +288,8 @@ def push_one(access_token, section_id, dt, url, list_title, log,
         if not body_html_raw:
             raise RuntimeError("正文区 art_contextBox 未找到")
     xhtml, image_urls = body_xhtml.convert(body_html_raw, base_url=url)
+    # 特定公众号首图（banner）强制剥掉
+    xhtml, image_urls = _maybe_strip_first_image(xhtml, image_urls, source_label)
     art_dt = parse_article_dt(publish_str, dt)
     final_title = build_page_title(art_dt, title or list_title)
 

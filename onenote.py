@@ -105,9 +105,29 @@ def list_sections(access_token):
 # ---------------------- Graph：发布页面（multipart） ----------------------
 
 # ---- 页面样式（所有新页面统一）----
-PAGE_FONT_FAMILY = '"SimSun", "宋体", serif'   # 宋体
+PAGE_FONT_FAMILY = "SimSun"                     # 宋体
 PAGE_FONT_SIZE_PT = 14                          # 14 pt
 PAGE_OUTLINE_WIDTH_PX = 900                     # outline 宽度（默认约 600，加宽 50% 让每行字数多 ~25-50%）
+
+import re as _re_for_style
+_BLOCK_TAGS_FOR_STYLE = ("p", "h1", "h2", "h3", "h4", "h5", "h6",
+                          "li", "td", "th", "blockquote")
+_BLOCK_TAG_RX = _re_for_style.compile(
+    r"<(" + "|".join(_BLOCK_TAGS_FOR_STYLE) + r")((?:\s[^>]*)?)>",
+    _re_for_style.IGNORECASE,
+)
+
+
+def _inject_inline_style(html, style):
+    """给所有块级元素的开始标签加上 inline style，OneNote 才认。
+    如果元素已有 style，就把字号字体追加到前面（不覆盖原有）。"""
+    def _add(m):
+        tag = m.group(1)
+        attrs = m.group(2) or ""
+        if 'style="' in attrs:
+            return m.group(0).replace('style="', f'style="{style}; ', 1)
+        return f"<{tag}{attrs} style=\"{style}\">"
+    return _BLOCK_TAG_RX.sub(_add, html)
 
 
 def create_page(access_token, section_id, title, xhtml_body, images, created_iso=None):
@@ -125,12 +145,14 @@ def create_page(access_token, section_id, title, xhtml_body, images, created_iso
 
     # Presentation 部分（XHTML 全页）
     meta_created = f'<meta name="created" content="{created_iso}"/>' if created_iso else ""
+    element_style = f"font-family:{PAGE_FONT_FAMILY}; font-size:{PAGE_FONT_SIZE_PT}pt"
     outline_style = (
         f"position:absolute; left:48px; top:120px; "
         f"width:{PAGE_OUTLINE_WIDTH_PX}px; "
-        f"font-family:{PAGE_FONT_FAMILY}; "
-        f"font-size:{PAGE_FONT_SIZE_PT}pt;"
+        f"{element_style}"
     )
+    # 给每个块元素加上 inline style（外层 div 上的 font 在 OneNote 里不保证向子元素传）
+    styled_body = _inject_inline_style(xhtml_body, element_style)
     presentation_html = (
         '<!DOCTYPE html>\n'
         '<html xmlns="http://www.w3.org/1999/xhtml">\n'
@@ -140,7 +162,7 @@ def create_page(access_token, section_id, title, xhtml_body, images, created_iso
         '</head>\n'
         '<body>\n'
         f'<div style="{outline_style}">\n'
-        f'{xhtml_body}\n'
+        f'{styled_body}\n'
         '</div>\n'
         '</body>\n'
         '</html>\n'

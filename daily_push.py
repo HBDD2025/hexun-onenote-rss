@@ -33,7 +33,7 @@ import onenote
 import rss_lib
 
 
-PER_ARTICLE_TIMEOUT_SEC = 180   # 单篇超时硬上限（避免一篇文章卡住整个 workflow）
+PER_ARTICLE_TIMEOUT_SEC = 120   # 单篇超时硬上限（避免一篇文章卡住整个 workflow）
 
 
 class _ArticleTimeout(Exception):
@@ -363,6 +363,12 @@ def main():
     has_signal = hasattr(signal, "SIGALRM")
     if has_signal:
         signal.signal(signal.SIGALRM, _article_timeout_handler)
+        # Python 3 默认 SA_RESTART：syscall 被信号中断后自动重启，导致 SIGALRM 不能打断 urlopen.read()
+        # siginterrupt(True) 让 syscall 被中断时直接报错，从而能立即终止卡死的下载
+        try:
+            signal.siginterrupt(signal.SIGALRM, True)
+        except Exception:
+            pass
 
     for i, (dt, url, title, content, source) in enumerate(items, 1):
         log(f"[{i}/{len(items)}] {dt} [{source}] {title[:40]}")

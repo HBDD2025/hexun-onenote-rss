@@ -28,7 +28,7 @@ LIST_URLS = [
 
 RETRIES = 3       # 通用重试次数（文章 HTML / 列表页）
 IMG_RETRIES = 1   # 图片专用：fail fast，下不到就放弃
-IMG_TIMEOUT = 12  # 图片单次请求超时（秒）
+IMG_TIMEOUT = 8   # 图片单次请求超时（秒），压紧
 
 
 def _new_request(url, cookies=None, referer=None):

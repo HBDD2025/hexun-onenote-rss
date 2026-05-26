@@ -30,8 +30,22 @@ RETRIES = 3       # 通用重试次数（文章 HTML / 列表页）
 IMG_RETRIES = 1   # 图片专用：fail fast，下不到就放弃
 IMG_TIMEOUT = 5   # 图片单次请求超时（秒），压紧
 
-# 已知一定会 405 的 URL 模式（jintiankansha 的 VIP 限制图），直接跳过省时间
-IMG_BLOCKED_PATTERNS = ("jintiankansha.me/rss_static/",)
+# jintiankansha cookie（VIP 登录态）。优先从环境变量读，本地也可以读 ~/jintiankansha-cookies.txt
+def _load_jintian_cookie():
+    import os as _os
+    v = _os.environ.get("JINTIANKANSHA_COOKIE", "").strip()
+    if v:
+        return v
+    path = _os.path.expanduser("~/jintiankansha-cookies.txt")
+    if _os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+        except Exception:
+            return ""
+    return ""
+
+JINTIAN_COOKIE = _load_jintian_cookie()
 
 
 def _new_request(url, cookies=None, referer=None):
@@ -86,13 +100,16 @@ def fetch(url, referer=None):
 
 
 def fetch_binary(url, referer=None):
-    """Image download — fail fast。最多两次：第一次裸下，遇到 EO_Bot 挑战就解 cookie 再来一次。"""
-    # 已知必 fail 的 URL（如 jintiankansha rss_static 需 VIP cookie，GitHub IP 拿不到），直接报错
-    for pat in IMG_BLOCKED_PATTERNS:
-        if pat in url:
-            raise RuntimeError(f"已知受限源，跳过：{pat}")
+    """Image download — fail fast。最多两次：第一次裸下，遇到 EO_Bot 挑战就解 cookie 再来一次。
+    对 jintiankansha.me URL 自动带上 JINTIAN_COOKIE（VIP 登录态），让 rss_static 类图能拿到。"""
     last_err = None
     cookies = None
+    # jintiankansha 域名：用 VIP cookie；没 cookie 时 rss_static 仍跳过
+    if "jintiankansha.me" in url:
+        if JINTIAN_COOKIE:
+            cookies = JINTIAN_COOKIE
+        elif "rss_static" in url:
+            raise RuntimeError("jintiankansha rss_static 需 VIP cookie，本环境未配置")
     # 最多两次：一次裸 + 一次带 cookie
     for attempt in range(IMG_RETRIES + 1):
         try:

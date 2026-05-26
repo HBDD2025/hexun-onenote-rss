@@ -32,6 +32,7 @@ jobs:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           MS_REFRESH_TOKEN: ${{ secrets.MS_REFRESH_TOKEN }}
           ONENOTE_SECTION_ID: ${{ secrets.ONENOTE_SECTION_ID }}
+          JINTIANKANSHA_COOKIE: ${{ secrets.JINTIANKANSHA_COOKIE }}
           STATE_FILE: state.json
         run: python daily_push.py
 

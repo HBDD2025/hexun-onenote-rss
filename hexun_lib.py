@@ -28,7 +28,7 @@ LIST_URLS = [
 
 RETRIES = 3       # 通用重试次数（文章 HTML / 列表页）
 IMG_RETRIES = 1   # 图片专用：fail fast，下不到就放弃
-IMG_TIMEOUT = 5   # 图片单次请求超时（秒），压紧
+IMG_TIMEOUT = 15  # 图片单次请求超时（秒）
 
 # jintiankansha cookie（VIP 登录态）。优先从环境变量读，本地也可以读 ~/jintiankansha-cookies.txt
 def _load_jintian_cookie():
@@ -101,15 +101,11 @@ def fetch(url, referer=None):
 
 def fetch_binary(url, referer=None):
     """Image download — fail fast。最多两次：第一次裸下，遇到 EO_Bot 挑战就解 cookie 再来一次。
-    对 jintiankansha.me URL 自动带上 JINTIAN_COOKIE（VIP 登录态），让 rss_static 类图能拿到。"""
+    对 jintiankansha.me URL 自动带上 JINTIAN_COOKIE（VIP 登录态，如果配置了的话）。"""
     last_err = None
     cookies = None
-    # jintiankansha 域名：用 VIP cookie；没 cookie 时 rss_static 仍跳过
-    if "jintiankansha.me" in url:
-        if JINTIAN_COOKIE:
-            cookies = JINTIAN_COOKIE
-        elif "rss_static" in url:
-            raise RuntimeError("jintiankansha rss_static 需 VIP cookie，本环境未配置")
+    if "jintiankansha.me" in url and JINTIAN_COOKIE:
+        cookies = JINTIAN_COOKIE
     # 最多两次：一次裸 + 一次带 cookie
     for attempt in range(IMG_RETRIES + 1):
         try:

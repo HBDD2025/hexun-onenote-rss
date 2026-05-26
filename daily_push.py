@@ -33,8 +33,12 @@ import onenote
 import rss_lib
 
 
-PER_ARTICLE_TIMEOUT_SEC = 90    # 单篇 wallclock 硬上限（信号兜底）
-IMG_BUDGET_SEC = 15             # 单篇所有图加起来的下载预算，超了剩下全占位
+PER_ARTICLE_TIMEOUT_SEC = 120   # 单篇 wallclock 硬上限（信号兜底）
+IMG_BUDGET_SEC = 90             # 单篇所有图加起来的下载预算，超了剩下全占位
+
+# 占位文字（两种语义）
+PLACEHOLDER_FAILED = '<p>【此处有图片，但未下载成功】</p>'    # 图片下载/校验失败、或主动规则删图
+PLACEHOLDER_FIRST_STRIPPED = '<p>【本处已删首图】</p>'         # 源特定规则：首图被强制删
 
 
 class _ArticleTimeout(Exception):
@@ -239,16 +243,16 @@ STRIP_FIRST_IMG_SOURCES = ("慧保天下", "中国银行保险报", "今日保",
 STRIP_AGGRESSIVE_SOURCES = ("慧保天下",)
 # 全部图删除
 STRIP_ALL_IMG_SOURCES = ("中国保险学会",)
-# 按文本锚点删图。每条 (source_kw, anchor_text, action)
+# 按文本锚点处理。每条 (source_kw, anchor_text, action)
 # action:
-#   "imgs_after"  → anchor 之后所有 <img/> 删除
-#   "next_img"    → anchor 之后第一张 <img/> 删除
-#   "prev_img"    → anchor 之前最后一张 <img/> 删除
+#   "all_after"   → anchor 所在段落及之后全删（文字+图）
+#   "next_img"    → anchor 之后第一张 <img/> 删除（替换占位）
+#   "prev_img"    → anchor 之前最后一张 <img/> 删除（替换占位）
 SOURCE_TEXT_RULES = (
-    ("中国银行保险报", "来源：",            "imgs_after"),
-    ("中国银行保险报", "来源:",             "imgs_after"),
+    ("中国银行保险报", "来源:", "all_after"),   # 注意：先匹配半角冒号（被 全角 包含）
+    ("中国银行保险报", "来源：", "all_after"),
     ("保观",          "保观 | 聚焦保险创新", "next_img"),
-    ("保险一哥",       "文章原文",            "prev_img"),
+    ("保险一哥",       "文章原文", "prev_img"),
 )
 
 
@@ -269,33 +273,34 @@ def _apply_source_rules(xhtml, image_urls, source_label):
     if not source_label or not image_urls:
         return xhtml, image_urls
 
-    # 1. 中国保险学会：全图删除
+    # 1. 中国保险学会：全图替换占位
     if any(s in source_label for s in STRIP_ALL_IMG_SOURCES):
-        xhtml = _IMG_TAG_RE.sub('<p>【本处有图片，但未能获取】</p>', xhtml)
+        xhtml = _IMG_TAG_RE.sub(PLACEHOLDER_FAILED, xhtml)
         return xhtml, []
 
-    # 2. 首图删除（含激进版）
+    # 2. 首图删除（替换为占位「本处已删首图」）
     aggressive = any(s in source_label for s in STRIP_AGGRESSIVE_SOURCES)
     simple_first = any(s in source_label for s in STRIP_FIRST_IMG_SOURCES)
     if aggressive:
+        # 慧保天下：删 [开头到首图（含）] + [首图后第一段]，首图位置插占位
         m = re.search(r'<img\s+src="name:img0"\s*/>', xhtml)
         if m:
             after = xhtml[m.end():]
-            # 砍掉紧跟的第一段
             after = re.sub(
                 r'^\s*(?:<br\s*/?>\s*)*<p[^>]*>.*?</p>\s*',
                 '', after, count=1, flags=re.S,
             )
-            xhtml = after
+            xhtml = PLACEHOLDER_FIRST_STRIPPED + after
     elif simple_first:
-        # 优先匹配整段 <p><img/></p>
+        # 把首图（含包裹 <p>）替换为占位段
         new_xhtml, n = re.subn(
-            r'<p[^>]*>\s*<img\s+src="name:img0"\s*/>\s*</p>\s*',
-            '', xhtml, count=1,
+            r'<p[^>]*>\s*<img\s+src="name:img0"\s*/>\s*</p>',
+            PLACEHOLDER_FIRST_STRIPPED, xhtml, count=1,
         )
         if n == 0:
             new_xhtml = re.sub(
-                r'<img\s+src="name:img0"\s*/>\s*', '', xhtml, count=1,
+                r'<img\s+src="name:img0"\s*/>',
+                PLACEHOLDER_FIRST_STRIPPED, xhtml, count=1,
             )
         xhtml = new_xhtml
 
@@ -306,25 +311,26 @@ def _apply_source_rules(xhtml, image_urls, source_label):
         idx = xhtml.find(anchor)
         if idx < 0:
             continue
-        if action == "imgs_after":
-            head = xhtml[:idx + len(anchor)]
-            tail = xhtml[idx + len(anchor):]
-            tail = _IMG_TAG_RE.sub('<p>【本处有图片，但未能获取】</p>', tail)
-            xhtml = head + tail
+        if action == "all_after":
+            # 砍掉锚点所在 <p> 的开头到末尾全部
+            p_start = xhtml.rfind('<p', 0, idx)
+            xhtml = xhtml[:p_start] if p_start >= 0 else xhtml[:idx]
+            break  # 砍完直接退，后续锚点无意义
         elif action == "next_img":
             head = xhtml[:idx + len(anchor)]
             tail = xhtml[idx + len(anchor):]
-            tail = _IMG_TAG_RE.sub('', tail, count=1)
+            tail = _IMG_TAG_RE.sub(PLACEHOLDER_FAILED, tail, count=1)
             xhtml = head + tail
         elif action == "prev_img":
             before = xhtml[:idx]
             after = xhtml[idx:]
-            # 找最后一个 img 在 before 中
             last_img = None
             for m in _IMG_TAG_RE.finditer(before):
                 last_img = m
             if last_img:
-                xhtml = before[:last_img.start()] + before[last_img.end():] + after
+                xhtml = (before[:last_img.start()]
+                         + PLACEHOLDER_FAILED
+                         + before[last_img.end():] + after)
 
     # 4. 最终重编号：根据 xhtml 里剩下的 name:imgN 引用，连续编号 0..K-1，过滤 image_urls
     used = sorted(set(int(m.group(1)) for m in re.finditer(r'name:img(\d+)', xhtml)))
@@ -400,7 +406,7 @@ def push_one(access_token, section_id, dt, url, list_title, log,
     # 重写 XHTML：失败的 img 替换成文字标记，幸存的 img 重新编号
     failed_set = {i for i in range(len(image_urls))} - {old for old, _ in valid_indices}
     for old_i in sorted(failed_set):
-        xhtml = xhtml.replace(f'<img src="name:img{old_i}" />', '<p>【本处有图片，但未能获取】</p>')
+        xhtml = xhtml.replace(f'<img src="name:img{old_i}" />', PLACEHOLDER_FAILED)
     # 把幸存图重新编号到 0..N-1
     # 用临时占位防止重号覆盖
     for old_i, new_i in valid_indices:

@@ -322,7 +322,9 @@ def push_one(access_token, section_id, dt, url, list_title, log,
         xhtml = xhtml.replace(f'<img src="name:_TMP{new_i}_" />', f'<img src="name:img{new_i}" />')
 
     # 顶部 meta：原文链接保留可点击，正文里的链接由 body_xhtml 剥掉
+    # 前面留 3 个空段落，避免长标题（3 行+）与正文重叠（直接物理推下去，比靠 CSS top 更稳）
     meta_header = (
+        '<p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p>'
         f'<p><b>来源：</b>{onenote._x_escape(source or "")} '
         f'<b>发布时间：</b>{onenote._x_escape(publish_str or "")} '
         f'<br/><b>原文：</b><a href="{onenote._x_escape(url)}">{onenote._x_escape(url)}</a></p>'

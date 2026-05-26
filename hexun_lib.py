@@ -82,14 +82,24 @@ def fetch(url, referer=None):
 
 def fetch_binary(url, referer=None):
     """Image download — bytes + content-type. Hexun has hotlink protection so we use
-    the same UA + Referer headers the browser would send."""
+    the same UA + Referer headers the browser would send. Also handles the EO_Bot
+    JS challenge that fs-cms.hexun.com serves to GitHub Actions IPs."""
     last_err = None
+    cookies = None
     for attempt in range(RETRIES):
         try:
-            req = _new_request(url, referer=referer)
+            req = _new_request(url, cookies=cookies, referer=referer)
             with urllib.request.urlopen(req, timeout=30) as r:
                 raw = r.read()
                 ctype = r.headers.get("Content-Type", "application/octet-stream").split(";")[0].strip()
+                # 反爬挑战：小响应 + text/html + __tst_status 关键字
+                if (len(raw) < 3000 and b"__tst_status" in raw
+                        and ctype.startswith("text/")):
+                    solved = _solve_challenge(raw)
+                    if solved:
+                        cookies = solved
+                        time.sleep(random.uniform(0.5, 1.0))
+                        continue  # 用新 cookie 重试本次循环
                 return raw, ctype
         except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError) as e:
             last_err = e

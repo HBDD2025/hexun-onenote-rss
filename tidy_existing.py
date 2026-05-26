@@ -100,10 +100,10 @@ def list_pages(access_token, section_id):
 
 def list_all_pages(access_token, log):
     """列整个 OneNote 账号的所有页（跨所有笔记本所有分区）。
-    返回每页含 id/title/createdDateTime/parentSection/parentNotebook 信息。"""
+    返回每页含 id/title/createdDateTime/parentSection/parentNotebook（扁平 expand）。"""
     pages = []
     url = (f"{onenote.GRAPH_BASE}/me/onenote/pages"
-           f"?$top=100&$expand=parentSection($expand=parentNotebook)"
+           f"?$top=100&$expand=parentSection,parentNotebook"
            f"&$select=id,title,createdDateTime")
     fetched = 0
     while url:
@@ -363,7 +363,7 @@ def tidy_one_page(access_token, page, biz_map, dry_run, log):
     page_id = page["id"]
     title = page.get("title", "")
     sec = (page.get("parentSection") or {}).get("displayName", "?")
-    nb = ((page.get("parentSection") or {}).get("parentNotebook") or {}).get("displayName", "?")
+    nb = (page.get("parentNotebook") or {}).get("displayName", "?")
     created_iso = page.get("createdDateTime", "")
     log(f"→ [{nb} / {sec}] {title[:50]}")
 
@@ -496,7 +496,7 @@ def page_in_scope(page, scopes):
     if scopes is None:
         return True
     sec_info = page.get("parentSection") or {}
-    nb_info = sec_info.get("parentNotebook") or {}
+    nb_info = page.get("parentNotebook") or {}
     sec_name = sec_info.get("displayName", "")
     nb_name = nb_info.get("displayName", "")
     for nb_spec, sec_spec in scopes:

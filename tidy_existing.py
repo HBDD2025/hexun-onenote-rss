@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-原地规整 OneNote **整个账号所有笔记本所有分区的所有页面**。
-不重新从源拉，仅对页面里现存 HTML 应用最新清理规则。
+原地规整 OneNote 页面（可指定笔记本/分区范围）。
+不重新从源拉，仅对页面里现存 HTML 应用规则。
 
 会做的（对每一页）：
   - 通用文本清理：剥编辑/责编/排版/版权声明/长按二维码 等末尾签名；
@@ -26,16 +26,19 @@
     cd ~/Desktop/hexun-onenote-rss
     git pull
 
-    # 试 3 条
-    python3 tidy_existing.py --limit 3 --dry-run
-    python3 tidy_existing.py --limit 3
-
-    # 全量
+    # 交互式：会先列你所有笔记本/分区，让你输入范围
     python3 tidy_existing.py
 
-    # 只规整某笔记本/分区
-    python3 tidy_existing.py --notebook "Chen's"
-    python3 tidy_existing.py --section "RSS syn2"
+    # 直接指定范围
+    python3 tidy_existing.py --scope "all"
+    python3 tidy_existing.py --scope "公司经营"
+    python3 tidy_existing.py --scope "公司经营/重要会议;公司经营/媒体报道"
+
+    # 加 --dry-run 不真改
+    python3 tidy_existing.py --scope "公司经营" --dry-run
+
+    # 加 --limit 试水
+    python3 tidy_existing.py --scope "all" --limit 3 --dry-run
 """
 
 import argparse
@@ -64,7 +67,7 @@ URL_IN_BODY_RE = re.compile(
     re.I,
 )
 BIZ_RE = re.compile(r'__biz=([^&]+)')
-ALL_IMG_RE = re.compile(r'<img\s[^>]*/?>', re.I)
+ALL_IMG_RE = re.compile(r'<img\b[^>]*/?>', re.I)
 # 跟 daily_push.py 保持一致
 PLACEHOLDER_FAILED = '<p>【此处有图片，但未下载成功】</p>'
 PLACEHOLDER_FIRST_STRIPPED = '<p>【本处已删首图】</p>'
@@ -168,80 +171,158 @@ def extract_body_inner(html):
     return m.group(1) if m else None
 
 
-def apply_in_place_source_rules(html, source_label):
-    """在 OneNote HTML 上应用源特定规则 + 兜底图片占位。
+def apply_image_rules(html, source_label):
+    """应用图片规则（绝大多数对所有页面生效，仅 2 条源特定）。
 
     顺序：
-      1. 源特定规则（首图占 `【本处已删首图】`、锚点处理等）—— 在还有 <img> 标签时跑
-      2. 兜底：剩下的 <img> 一律替换成 `【此处有图片，但未下载成功】`
+      1. 中国保险学会（源特定）：全图替换占位，结束
+      2. 首图：慧保天下走激进（删[开头到首图含]+[首图后第一段]+占位），其他所有页走简单首图替换占位
+      3. 通用：「来源:」或「来源：」段落及之后全删
+      4. 通用：「保观 | 聚焦保险创新」后第 1 张图替换占位
+      5. 正文中其他 <img> 保留原状
     """
-    if source_label:
-        # 1a. 中国保险学会：全图替换占位
-        if "中国保险学会" in source_label:
-            html = ALL_IMG_RE.sub(PLACEHOLDER_FAILED, html)
+    # 1. 中国保险学会：全图占位
+    if source_label and "中国保险学会" in source_label:
+        return ALL_IMG_RE.sub(PLACEHOLDER_FAILED, html)
 
-        # 1b. 首图替换为「本处已删首图」（慧保天下激进 / 其他简单）
-        aggressive = "慧保天下" in source_label
-        simple_first = any(s in source_label for s in
-                           ("中国银行保险报", "今日保", "保契", "13个精算师"))
-        if aggressive:
-            m = ALL_IMG_RE.search(html)
-            if m:
-                after = html[m.end():]
-                after = re.sub(
-                    r'^\s*(?:<br\s*/?>\s*)*<p[^>]*>.*?</p>\s*',
-                    '', after, count=1, flags=re.S,
-                )
-                html = PLACEHOLDER_FIRST_STRIPPED + after
-        elif simple_first:
-            m = ALL_IMG_RE.search(html)
-            if m:
-                p_match = re.search(
-                    r'<p[^>]*>\s*' + re.escape(html[m.start():m.end()]) + r'\s*</p>',
-                    html, re.S,
-                )
-                if p_match:
-                    html = (html[:p_match.start()] + PLACEHOLDER_FIRST_STRIPPED
-                            + html[p_match.end():])
-                else:
-                    html = (html[:m.start()] + PLACEHOLDER_FIRST_STRIPPED
-                            + html[m.end():])
+    # 2. 首图处理
+    if source_label and "慧保天下" in source_label:
+        # 激进模式
+        m = ALL_IMG_RE.search(html)
+        if m:
+            after = html[m.end():]
+            after = re.sub(
+                r'^\s*(?:<br\s*/?>\s*)*<p[^>]*>.*?</p>\s*',
+                '', after, count=1, flags=re.S,
+            )
+            html = PLACEHOLDER_FIRST_STRIPPED + after
+    else:
+        # 通用首图删（替换为占位）
+        m = ALL_IMG_RE.search(html)
+        if m:
+            p_match = re.search(
+                r'<p[^>]*>\s*' + re.escape(html[m.start():m.end()]) + r'\s*</p>',
+                html, re.S,
+            )
+            if p_match:
+                html = (html[:p_match.start()] + PLACEHOLDER_FIRST_STRIPPED
+                        + html[p_match.end():])
+            else:
+                html = (html[:m.start()] + PLACEHOLDER_FIRST_STRIPPED
+                        + html[m.end():])
 
-        # 1c. 文本锚点规则
-        rules = [
-            ("中国银行保险报", "来源:", "all_after"),   # 半角先试（substring 重合 全角时优先）
-            ("中国银行保险报", "来源：", "all_after"),
-            ("保观",          "保观 | 聚焦保险创新", "next_img"),
-            ("保险一哥",       "文章原文", "prev_img"),
-        ]
-        for src_kw, anchor, action in rules:
-            if src_kw not in source_label:
-                continue
-            idx = html.find(anchor)
-            if idx < 0:
-                continue
-            if action == "all_after":
-                # 砍掉锚点所在 <p> 的开始位置到末尾
-                p_start = html.rfind('<p', 0, idx)
-                html = html[:p_start] if p_start >= 0 else html[:idx]
-                break
-            elif action == "next_img":
-                head = html[:idx + len(anchor)]
-                tail = html[idx + len(anchor):]
-                tail = ALL_IMG_RE.sub(PLACEHOLDER_FAILED, tail, count=1)
-                html = head + tail
-            elif action == "prev_img":
-                before = html[:idx]
-                after = html[idx:]
-                last_img = None
-                for m in ALL_IMG_RE.finditer(before):
-                    last_img = m
-                if last_img:
-                    html = (before[:last_img.start()] + PLACEHOLDER_FAILED
-                            + before[last_img.end():] + after)
+    # 3. 通用「来源:」全删
+    for anchor in ("来源:", "来源："):
+        idx = html.find(anchor)
+        if idx < 0:
+            continue
+        p_start = html.rfind('<p', 0, idx)
+        html = html[:p_start] if p_start >= 0 else html[:idx]
+        break
 
-    # 2. 兜底：所有剩余 <img>（包括 graph.microsoft.com 资源 / 任何 src）一律占位
-    html = ALL_IMG_RE.sub(PLACEHOLDER_FAILED, html)
+    # 4. 通用「保观 | 聚焦保险创新」后第 1 张图替换占位
+    anchor = "保观 | 聚焦保险创新"
+    idx = html.find(anchor)
+    if idx >= 0:
+        head = html[:idx + len(anchor)]
+        tail = html[idx + len(anchor):]
+        tail = ALL_IMG_RE.sub(PLACEHOLDER_FAILED, tail, count=1)
+        html = head + tail
+
+    return html
+
+
+# 老名字兼容
+apply_in_place_source_rules = apply_image_rules
+
+
+# --------- 日期提取与标题生成 ---------
+
+_DATE_PATTERNS = [
+    re.compile(r'(20\d{2})-(\d{1,2})-(\d{1,2})\b'),
+    re.compile(r'(20\d{2})/(\d{1,2})/(\d{1,2})\b'),
+    re.compile(r'(20\d{2})\.(\d{1,2})\.(\d{1,2})\b'),
+    re.compile(r'(20\d{2})年\s*(\d{1,2})月\s*(\d{1,2})日'),
+]
+
+
+def extract_date_from_body(html):
+    """从正文 HTML 抽出第一个合理的日期，返回 (yy, mm, dd) 三元组或 None。"""
+    # 先剥标签做纯文本搜索，避免匹配到 OneNote 元数据
+    text = re.sub(r'<[^>]+>', ' ', html)
+    text = re.sub(r'\s+', ' ', text)
+    for pat in _DATE_PATTERNS:
+        m = pat.search(text)
+        if not m:
+            continue
+        try:
+            year = int(m.group(1))
+            month = int(m.group(2))
+            day = int(m.group(3))
+            if 2000 <= year <= 2099 and 1 <= month <= 12 and 1 <= day <= 31:
+                return year, month, day
+        except (ValueError, IndexError):
+            continue
+    return None
+
+
+def build_new_title(orig_title, body_html, page_created_iso):
+    """生成符合 YYMMDD前缀 + 原标题 格式的新标题。
+    返回 (new_title, changed_bool)。
+    规则：
+      - 标题已是 YYMMDD 起头（6 位数字后非数字）→ 保留
+      - 标题是 YYYYMMDD 起头（8 位数字后非数字）→ 截前两位（20）
+      - 正文找到日期 → 用正文日期
+      - 都没有 → 用页创建日期 + （日期为录入日期）后缀
+    """
+    if not orig_title:
+        orig_title = ""
+
+    # 已是 6 位数字开头（后接非数字或字符串结束）
+    m6 = re.match(r'^(\d{6})(\D|$)', orig_title)
+    if m6:
+        # 验证一下是合法的 YYMMDD（年 21-30 之间认为靠谱；防误判其他纯数字开头）
+        yy = int(m6.group(1)[:2])
+        if 20 <= yy <= 35:
+            return orig_title, False
+
+    # 8 位数字开头（YYYYMMDD）→ 截
+    m8 = re.match(r'^20(\d{6})(\D|$)', orig_title)
+    if m8:
+        return m8.group(1) + orig_title[8:], True
+
+    # 从正文找
+    body_date = extract_date_from_body(body_html)
+    if body_date:
+        y, mo, d = body_date
+        return f"{y % 100:02d}{mo:02d}{d:02d}{orig_title}", True
+
+    # 用页创建日期
+    if page_created_iso:
+        try:
+            dt = datetime.fromisoformat(page_created_iso.replace("Z", "+00:00"))
+            bjt = dt.astimezone(BEIJING)
+            return f"{bjt.strftime('%y%m%d')}{orig_title}（日期为录入日期）", True
+        except Exception:
+            pass
+    return orig_title, False
+
+
+# --------- 用户标注（荧光笔/背景高亮）剥离 ---------
+
+_HIGHLIGHT_STYLE_RE = re.compile(r'background(?:-color)?\s*:\s*[^;"]+;?', re.I)
+_ONENOTE_INK_RE = re.compile(r'<img[^>]*\bdata-?renderer[-_]?src=[^>]*?>', re.I)
+
+
+def strip_annotations(html):
+    """剥除用户手动标注（荧光笔/手写）。保守做法：
+       - 把 inline style 里的 background / background-color 去掉
+       - 删 OneNote 的 ink 渲染图标记 (data-renderer-src 含 ink/inkml)
+    保留 <object>（附件）等其他标签。"""
+    # 移除 background 样式
+    html = _HIGHLIGHT_STYLE_RE.sub('', html)
+    # 移除 ink 标记图
+    html = _ONENOTE_INK_RE.sub('', html)
     return html
 
 
@@ -281,9 +362,9 @@ def save_state(state):
 def tidy_one_page(access_token, page, biz_map, dry_run, log):
     page_id = page["id"]
     title = page.get("title", "")
-    # 显示笔记本 + 分区 + 标题
     sec = (page.get("parentSection") or {}).get("displayName", "?")
     nb = ((page.get("parentSection") or {}).get("parentNotebook") or {}).get("displayName", "?")
+    created_iso = page.get("createdDateTime", "")
     log(f"→ [{nb} / {sec}] {title[:50]}")
 
     try:
@@ -294,17 +375,20 @@ def tidy_one_page(access_token, page, biz_map, dry_run, log):
 
     orig_url = extract_orig_url(html)
     source_label = identify_source(orig_url, biz_map)
-    log(f"  源：{source_label or '(未知)'}, URL: {(orig_url or '')[:80]}")
 
     body_inner = extract_body_inner(html)
     if not body_inner:
         log(f"  ! 没找到 <body>，跳过")
         return "skip"
 
-    # 应用所有规则
+    # === 应用规则 ===
+    # 1. 通用文本清理（编辑/版权声明锚点、文章原文+3行、头尾纯图）
     new_body = body_xhtml._strip_promo(body_inner)
-    new_body = apply_in_place_source_rules(new_body, source_label)
-    # 重新注入字号字体
+    # 2. 图片规则（首图/中国保险学会全图/慧保天下激进/来源:/保观锚点）
+    new_body = apply_image_rules(new_body, source_label)
+    # 3. 剥用户标注（荧光笔背景、手写墨迹）
+    new_body = strip_annotations(new_body)
+    # 4. 字体字号统一
     element_style = (
         f"font-family:'{onenote.PAGE_FONT_FAMILY}';"
         f"font-size:{onenote.PAGE_FONT_SIZE_PT}.0pt"
@@ -312,41 +396,155 @@ def tidy_one_page(access_token, page, biz_map, dry_run, log):
     new_body = onenote._inject_inline_style(new_body, element_style)
     new_body = onenote._wrap_text_in_span(new_body, element_style)
 
-    if new_body.strip() == body_inner.strip():
-        log(f"  · 无变化，跳过")
+    # === 新标题 ===
+    new_title, title_changed = build_new_title(title, new_body, created_iso)
+    body_changed = new_body.strip() != body_inner.strip()
+
+    if not body_changed and not title_changed:
+        log(f"  · 标题和正文都无变化，跳过")
         return "skip"
 
+    log(f"  源:{source_label or '(未知)'}{' / 标题→ ' + new_title[:40] if title_changed else ''}")
     if dry_run:
-        log(f"  [dry-run] 会 PATCH replace target=body")
-        log(f"           原长 {len(body_inner)} → 新长 {len(new_body)}")
+        log(f"  [dry-run] body {len(body_inner)} → {len(new_body)} 字"
+            f"{' / 标题改' if title_changed else ''}")
         return "ok"
 
-    try:
-        patch_page(access_token, page_id, [{
+    actions = []
+    if title_changed:
+        actions.append({
+            "target": "title",
+            "action": "replace",
+            "content": f"<title>{new_title}</title>",
+        })
+    if body_changed:
+        actions.append({
             "target": "body",
             "action": "replace",
             "content": new_body,
-        }])
-        log(f"  ✓ 已原地更新 ({len(body_inner)} → {len(new_body)} 字)")
+        })
+    try:
+        patch_page(access_token, page_id, actions)
+        log(f"  ✓ 已更新")
     except Exception as e:
         log(f"  ! PATCH 失败：{e}")
         return "fail"
     return "ok"
 
 
+# --------- 范围（笔记本/分区）选择 ---------
+
+def list_notebooks_with_sections(access_token):
+    """列出所有笔记本及其分区。"""
+    url = (f"{onenote.GRAPH_BASE}/me/onenote/notebooks"
+           f"?$expand=sections($select=id,displayName)&$select=id,displayName")
+    notebooks = []
+    while url:
+        data = onenote._graph_get(access_token, url)
+        notebooks.extend(data.get("value", []))
+        url = data.get("@odata.nextLink")
+    return notebooks
+
+
+def print_notebooks_tree(notebooks):
+    print("\n=== 你的 OneNote 笔记本 / 分区 ===")
+    for nb in notebooks:
+        nb_name = nb.get("displayName", "?")
+        print(f"  📓 {nb_name}")
+        for sec in nb.get("sections", []):
+            print(f"     - {sec.get('displayName', '?')}")
+    print("=" * 40)
+
+
+def parse_scope(spec_str):
+    """'all' → None; '公司经营/会议;Chen/RSS syn2' → [('公司经营','会议'),('Chen','RSS syn2')]
+       '公司经营' → [('公司经营', None)]  整个笔记本"""
+    if not spec_str:
+        return None
+    s = spec_str.strip()
+    if s.lower() in ("all", "全部", "*"):
+        return None
+    scopes = []
+    for token in s.split(";"):
+        token = token.strip()
+        if not token:
+            continue
+        parts = token.split("/", 1)
+        nb = parts[0].strip()
+        sec = parts[1].strip() if len(parts) > 1 else None
+        scopes.append((nb, sec))
+    return scopes
+
+
+def validate_scope(scopes, notebooks):
+    """校验 scopes 里的每条都对得上现有 notebook/section。返回 (ok, error_msgs)."""
+    nb_names = {nb.get("displayName") for nb in notebooks}
+    sec_by_nb = {
+        nb.get("displayName"): {s.get("displayName") for s in nb.get("sections", [])}
+        for nb in notebooks
+    }
+    errors = []
+    for nb, sec in scopes:
+        if nb not in nb_names:
+            errors.append(f"笔记本不存在：{nb}")
+        elif sec is not None and sec not in sec_by_nb.get(nb, set()):
+            errors.append(f"分区不存在：{nb}/{sec}")
+    return (not errors), errors
+
+
+def page_in_scope(page, scopes):
+    if scopes is None:
+        return True
+    sec_info = page.get("parentSection") or {}
+    nb_info = sec_info.get("parentNotebook") or {}
+    sec_name = sec_info.get("displayName", "")
+    nb_name = nb_info.get("displayName", "")
+    for nb_spec, sec_spec in scopes:
+        if nb_name == nb_spec:
+            if sec_spec is None or sec_name == sec_spec:
+                return True
+    return False
+
+
+def prompt_for_scope(notebooks):
+    """显示树 + 提示用户输入范围。"""
+    print_notebooks_tree(notebooks)
+    print()
+    print("输入要处理的范围：")
+    print("  - 'all' = 全部笔记本所有分区")
+    print("  - '公司经营' = 整个笔记本（所有分区）")
+    print("  - '公司经营/重要会议' = 指定分区")
+    print("  - 多个用分号 ';' 分隔，比如 '公司经营/重要会议;公司经营/媒体报道'")
+    while True:
+        raw = input("\n范围 > ").strip()
+        scopes = parse_scope(raw)
+        if scopes is None:
+            print("已选：全部")
+            return None
+        ok, errors = validate_scope(scopes, notebooks)
+        if ok:
+            print("已选范围：")
+            for nb, sec in scopes:
+                print(f"  - {nb}{'/' + sec if sec else ' (整个笔记本)'}")
+            return scopes
+        for e in errors:
+            print(f"  ⚠ {e}")
+        print("请重新输入。")
+
+
 def main():
-    ap = argparse.ArgumentParser(description="原地规整 OneNote 所有笔记本所有分区的所有页面")
+    ap = argparse.ArgumentParser(description="原地规整 OneNote 页面")
     ap.add_argument("--limit", type=int, default=0)
-    ap.add_argument("--notebook", default="", help="只处理笔记本名包含该关键字的页")
-    ap.add_argument("--section", default="", help="只处理分区名包含该关键字的页")
-    ap.add_argument("--title", default="", help="只处理标题含该关键字的页")
+    ap.add_argument("--scope", default=None,
+                    help='范围。"all" / "公司经营" / "公司经营/重要会议" / 多个分号分隔。'
+                         '不传时进入交互式选择')
+    ap.add_argument("--title-kw", default="", help="只处理标题含该关键字的页")
     ap.add_argument("--since", default="", help="只处理 YYMMDD 前缀 >= 该日期的页 (YYYY-MM-DD)")
-    ap.add_argument("--single-section-id", default="", help="只处理某个分区（用 section id）")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
     print("=" * 64)
-    print("OneNote 原地规整（整个账号所有页面）")
+    print("OneNote 原地规整")
     print("=" * 64)
 
     secrets = load_secrets()
@@ -360,28 +558,38 @@ def main():
             json.dump(secrets, f, indent=2, ensure_ascii=False)
         log("refresh_token 已更新本地副本")
 
-    if args.single_section_id:
-        log(f"列指定分区 {args.single_section_id[:20]}… 下所有页面...")
-        pages = list_pages(access_token, args.single_section_id)
+    # 列笔记本/分区 + 让用户选范围
+    log("\n列出你 OneNote 所有笔记本和分区...")
+    notebooks = list_notebooks_with_sections(access_token)
+
+    if args.scope is None:
+        scopes = prompt_for_scope(notebooks)
     else:
-        log("列整个 OneNote 账号所有页面（跨所有笔记本/分区）...")
-        pages = list_all_pages(access_token, log)
+        scopes = parse_scope(args.scope)
+        if scopes is not None:
+            ok, errors = validate_scope(scopes, notebooks)
+            if not ok:
+                for e in errors:
+                    print(f"  ⚠ {e}")
+                sys.exit(1)
+            log("已选范围：")
+            for nb, sec in scopes:
+                log(f"  - {nb}{'/' + sec if sec else ' (整个笔记本)'}")
+        else:
+            log("已选：全部")
+
+    log("\n列所有页面...")
+    pages = list_all_pages(access_token, log)
     log(f"  共 {len(pages)} 页")
 
-    if args.notebook:
+    # 范围过滤
+    before = len(pages)
+    pages = [p for p in pages if page_in_scope(p, scopes)]
+    log(f"  按范围过滤：{before} → {len(pages)}")
+
+    if args.title_kw:
         before = len(pages)
-        pages = [p for p in pages
-                 if args.notebook in ((p.get("parentSection") or {})
-                                        .get("parentNotebook") or {}).get("displayName", "")]
-        log(f"  按 notebook 过滤：{before} → {len(pages)}")
-    if args.section:
-        before = len(pages)
-        pages = [p for p in pages
-                 if args.section in (p.get("parentSection") or {}).get("displayName", "")]
-        log(f"  按 section 过滤：{before} → {len(pages)}")
-    if args.title:
-        before = len(pages)
-        pages = [p for p in pages if args.title in p.get("title", "")]
+        pages = [p for p in pages if args.title_kw in p.get("title", "")]
         log(f"  按 title 过滤：{before} → {len(pages)}")
     if args.since:
         try:

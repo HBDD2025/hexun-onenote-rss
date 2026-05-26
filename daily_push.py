@@ -33,8 +33,8 @@ import onenote
 import rss_lib
 
 
-PER_ARTICLE_TIMEOUT_SEC = 120   # 单篇 wallclock 硬上限（信号兜底）
-IMG_BUDGET_SEC = 30             # 单篇所有图加起来的下载预算，超了剩下全占位
+PER_ARTICLE_TIMEOUT_SEC = 90    # 单篇 wallclock 硬上限（信号兜底）
+IMG_BUDGET_SEC = 15             # 单篇所有图加起来的下载预算，超了剩下全占位
 
 
 class _ArticleTimeout(Exception):

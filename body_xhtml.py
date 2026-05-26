@@ -126,32 +126,43 @@ def _attr_escape(s):
 def _strip_promo(xhtml):
     """
     剥掉广告条幅 / 公众号末尾推广区。
-    - 尾：找 "《XXX》编辑 张三" 或 "编辑：张三" 或 "【版权声明】"，剪掉之后所有内容
+    - 尾：找"编辑/责编/排版/校对/审核/版权声明/长按识别二维码"等签名锚点，剪掉之后所有内容
     - 尾：再去掉末尾连续的纯图段落
     - 头：剥掉首张 banner（如果首图出现在第一个含文字段落之前）
     """
     if not xhtml:
         return xhtml
 
-    # 1. 找末尾"编辑"标记，剪掉之后
+    # 末尾签名锚点。覆盖多种公众号常见的写法
     end_anchors = [
-        re.compile(r'《[^》]+》\s*编辑[^<]*', re.I),
-        re.compile(r'[（(]?\s*编辑\s*[:：][^<）)]+[）)]?'),
+        # 整段 <p>《XXX》编辑 张三</p>
+        re.compile(r'<p[^>]*>\s*(?:<[^>]+>\s*)*《[^》]+》\s*编辑\b[^<]{0,40}</p>', re.I),
+        # 整段 <p>(本期/责任/责)编辑 [：:/／\s]\s*X</p>
+        re.compile(r'<p[^>]*>\s*(?:<[^>]+>\s*)*(?:本期|责任|责)?编辑\s*[:：/／\s][^<]{1,40}</p>', re.I),
+        # 整段 <p>排版/校对/审核/审定/审签/主编/监制 [：:/／]\s*X</p>
+        re.compile(r'<p[^>]*>\s*(?:<[^>]+>\s*)*(?:排版|校对|审核|审定|审签|主编|监制|来源)\s*[:：/／][^<]{1,60}</p>', re.I),
+        # 【版权声明】整段
+        re.compile(r'<p[^>]*>[^<]*【版权声明】.*?</p>', re.I | re.S),
+        # 长按识别二维码
+        re.compile(r'<p[^>]*>[^<]*长按识别二维码.*?</p>', re.I | re.S),
+        # 兜底：裸 "《XXX》编辑 X"（不在 <p> 包裹中）
+        re.compile(r'《[^》]+》\s*编辑\b[^<]{1,40}', re.I),
+        # 兜底：裸 "【版权声明】" 文本
         re.compile(r'【版权声明】', re.I),
     ]
+
+    # 取所有匹配中位置最早的（最早出现 = 之后的全是垃圾）
     cut_at = None
     for pat in end_anchors:
         for m in pat.finditer(xhtml):
-            # 找该锚点最近的下一个 </p> 或行尾
-            close_p = xhtml.find("</p>", m.end())
-            if close_p != -1:
-                pos = close_p + 4
-            else:
+            # 如果匹配整段（以 </p> 结尾）就用 m.end()，否则找下一个 </p>
+            if m.group(0).endswith("</p>"):
                 pos = m.end()
-            if cut_at is None or pos > cut_at:
+            else:
+                close_p = xhtml.find("</p>", m.end())
+                pos = close_p + 4 if close_p != -1 else m.end()
+            if cut_at is None or pos < cut_at:
                 cut_at = pos
-        if cut_at is not None:
-            break
     if cut_at is not None:
         xhtml = xhtml[:cut_at]
 

@@ -105,14 +105,15 @@ def list_sections(access_token):
 # ---------------------- Graph：发布页面（multipart） ----------------------
 
 # ---- 页面样式（所有新页面统一）----
-PAGE_FONT_FAMILY = "SimSun"                     # 宋体
-PAGE_FONT_SIZE_PT = 14                          # 14 pt
-PAGE_OUTLINE_WIDTH_PX = 1125                    # outline 宽度（再加 25%：900 → 1125）
-PAGE_OUTLINE_TOP_PX = 240                       # outline 起始 Y 坐标（防止 3 行以上长标题与正文重叠）
+# OneNote 的 CSS 比较挑食，格式按官方文档严格写：冒号后空格、字号带 .0pt、字体名带中文
+PAGE_FONT_FAMILY = "宋体"                      # 中文名比英文 SimSun 在 OneNote 各端识别率高
+PAGE_FONT_SIZE_PT = 14                         # 14 pt
+PAGE_OUTLINE_WIDTH_PX = 1125
+PAGE_OUTLINE_TOP_PX = 240
 
 import re as _re_for_style
 _BLOCK_TAGS_FOR_STYLE = ("p", "h1", "h2", "h3", "h4", "h5", "h6",
-                          "li", "td", "th", "blockquote")
+                          "li", "td", "th", "blockquote", "span")
 _BLOCK_TAG_RX = _re_for_style.compile(
     r"<(" + "|".join(_BLOCK_TAGS_FOR_STYLE) + r")((?:\s[^>]*)?)>",
     _re_for_style.IGNORECASE,
@@ -131,6 +132,21 @@ def _inject_inline_style(html, style):
     return _BLOCK_TAG_RX.sub(_add, html)
 
 
+def _wrap_text_in_span(html, style):
+    """把每个 <p>... 直接文本内容</p> 用 <span style="..."> 包起来。
+    OneNote 经常忽略 <p> 上的字号字体，但 <span> 内联 style 一般认。"""
+    def _wrap(m):
+        opening = m.group(1)
+        inner = m.group(2)
+        # 如果内部已经全是 <span>/<b>/<a> 等，简单包一层
+        return f'{opening}<span style="{style}">{inner}</span></p>'
+    # 仅匹配那些 <p>...</p> 不含嵌套 <p> 的（最普遍情况）
+    return _re_for_style.sub(
+        r'(<p(?:\s[^>]*)?>)((?:(?!</p>).)*)</p>',
+        _wrap, html, flags=_re_for_style.DOTALL,
+    )
+
+
 def create_page(access_token, section_id, title, xhtml_body, images, created_iso=None):
     """
     把一篇带图片的 OneNote 页面发布到指定分区。
@@ -146,14 +162,15 @@ def create_page(access_token, section_id, title, xhtml_body, images, created_iso
 
     # Presentation 部分（XHTML 全页）
     meta_created = f'<meta name="created" content="{created_iso}"/>' if created_iso else ""
-    element_style = f"font-family:{PAGE_FONT_FAMILY}; font-size:{PAGE_FONT_SIZE_PT}pt"
+    # OneNote 严格格式：冒号后空格、字号带 .0pt、单引号或双引号都行但要一致
+    element_style = f"font-family: '{PAGE_FONT_FAMILY}'; font-size: {PAGE_FONT_SIZE_PT}.0pt"
     outline_style = (
         f"position:absolute; left:48px; top:{PAGE_OUTLINE_TOP_PX}px; "
-        f"width:{PAGE_OUTLINE_WIDTH_PX}px; "
-        f"{element_style}"
+        f"width:{PAGE_OUTLINE_WIDTH_PX}px"
     )
-    # 给每个块元素加上 inline style（外层 div 上的 font 在 OneNote 里不保证向子元素传）
+    # 双重保险：1) 在每个 <p>/<h>/<li> 上加 style；2) <p> 内部文本再套一层 <span style="..."> 因为 OneNote 经常忽略 <p> 上的 font
     styled_body = _inject_inline_style(xhtml_body, element_style)
+    styled_body = _wrap_text_in_span(styled_body, element_style)
     presentation_html = (
         '<!DOCTYPE html>\n'
         '<html xmlns="http://www.w3.org/1999/xhtml">\n'
@@ -161,7 +178,7 @@ def create_page(access_token, section_id, title, xhtml_body, images, created_iso
         f'  <title>{_x_escape(title)}</title>\n'
         f'  {meta_created}\n'
         '</head>\n'
-        '<body>\n'
+        f'<body style="{element_style}">\n'
         f'<div style="{outline_style}">\n'
         f'{styled_body}\n'
         '</div>\n'

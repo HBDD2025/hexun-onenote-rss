@@ -162,13 +162,15 @@ def create_page(access_token, section_id, title, xhtml_body, images, created_iso
 
     # Presentation 部分（XHTML 全页）
     meta_created = f'<meta name="created" content="{created_iso}"/>' if created_iso else ""
-    # OneNote 严格格式：冒号后空格、字号带 .0pt、单引号或双引号都行但要一致
-    element_style = f"font-family: '{PAGE_FONT_FAMILY}'; font-size: {PAGE_FONT_SIZE_PT}.0pt"
+    # CSS 不带空格（OneNote 严格点）；字体名带单引号；字号 14.0pt
+    element_style = f"font-family:'{PAGE_FONT_FAMILY}';font-size:{PAGE_FONT_SIZE_PT}.0pt"
+    # outline 严格只放 position/left/top/width（OneNote 明确文档要求；混入 font 会被整段 strip）
     outline_style = (
-        f"position:absolute; left:48px; top:{PAGE_OUTLINE_TOP_PX}px; "
-        f"width:{PAGE_OUTLINE_WIDTH_PX}px"
+        f"position:absolute;left:48px;"
+        f"top:{PAGE_OUTLINE_TOP_PX}px;"
+        f"width:{PAGE_OUTLINE_WIDTH_PX}px;"
     )
-    # 双重保险：1) 在每个 <p>/<h>/<li> 上加 style；2) <p> 内部文本再套一层 <span style="..."> 因为 OneNote 经常忽略 <p> 上的 font
+    # 给每个 <p>/<h>/<li> 加 inline style，再用 <span> 包内文（双重保险）
     styled_body = _inject_inline_style(xhtml_body, element_style)
     styled_body = _wrap_text_in_span(styled_body, element_style)
     presentation_html = (
@@ -178,8 +180,8 @@ def create_page(access_token, section_id, title, xhtml_body, images, created_iso
         f'  <title>{_x_escape(title)}</title>\n'
         f'  {meta_created}\n'
         '</head>\n'
-        f'<body style="{element_style}">\n'
-        f'<div style="{outline_style}">\n'
+        '<body>\n'
+        f'<div data-id="onp-outline" style="{outline_style}">\n'
         f'{styled_body}\n'
         '</div>\n'
         '</body>\n'

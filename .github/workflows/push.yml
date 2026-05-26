@@ -35,6 +35,21 @@ jobs:
           STATE_FILE: state.json
         run: python daily_push.py
 
+      - name: Auto-update MS_REFRESH_TOKEN secret if rotated
+        if: always()      # 跑失败也试一下，避免 token 丢失
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_FOR_SECRETS }}
+        run: |
+          if [ -f _new_refresh_token.tmp ]; then
+            if [ -z "$GH_TOKEN" ]; then
+              echo "::warning::检测到新 refresh_token 但 GH_PAT_FOR_SECRETS 未配置，无法自动更新。请到 Actions 日志找新值手动改 Secret"
+              exit 0
+            fi
+            gh secret set MS_REFRESH_TOKEN --body "$(cat _new_refresh_token.tmp)" --repo "$GITHUB_REPOSITORY"
+            rm _new_refresh_token.tmp
+            echo "::notice::MS_REFRESH_TOKEN secret 已自动更新"
+          fi
+
       - name: Commit state.json if changed
         if: always()    # 失败时也回写（中途已推送的部分要记录）
         run: |

@@ -36,7 +36,9 @@ BEIJING = timezone(timedelta(hours=8))
 
 STATE_KEEP = 2000          # 最近 N 条 URL/标题 留作去重
 BOOTSTRAP_HOURS = 48        # 首跑只追溯过去 N 小时
+MAX_AGE_DAYS = 7            # 任何源里超过这个天数的文章一律忽略（防止 bxzjyy/bxscpl 等单页含远古内容的栏目漏推）
 DELAY_RANGE = (1.5, 3.5)
+NEW_REFRESH_TOKEN_FILE = "_new_refresh_token.tmp"  # 检测到 token 轮换时写到这；workflow 会捕获
 
 
 def _norm_title(t):
@@ -103,8 +105,11 @@ def collect_new_articles(state, log):
     pushed_titles = set(state.get("pushed_titles", []))
     is_first_run = len(pushed_urls) == 0
     cutoff = datetime.now(BEIJING) - timedelta(hours=BOOTSTRAP_HOURS)
+    age_cutoff = datetime.now(BEIJING) - timedelta(days=MAX_AGE_DAYS)
     if is_first_run:
         log(f"首次运行，仅推送 {cutoff.date()} 之后（≈过去 {BOOTSTRAP_HOURS} 小时）的文章；其他记入 state")
+    else:
+        log(f"忽略 {age_cutoff.date()} 之前的文章（>{MAX_AGE_DAYS} 天，防远古内容意外补入）")
 
     # --- 1a. 抓和讯 5 个栏目 ---
     all_entries = []  # 统一形状: (dt, url, title, content_or_none, source_label)
@@ -160,7 +165,7 @@ def collect_new_articles(state, log):
         deduped.append(tup)
     log(f"汇总 {len(all_entries)} → URL 去重 {len(after_url_dedup)} → 标题去重 {len(deduped)}（跨源重复 {title_collisions} 条）")
 
-    # --- 4. 对比 state，排除已推过的 ---
+    # --- 4. 对比 state，排除已推过的 + 超过 MAX_AGE_DAYS 的 ---
     new_items = []
     skipped_old = 0
     for dt, url, title, content, source in deduped:
@@ -168,12 +173,19 @@ def collect_new_articles(state, log):
             continue
         if _norm_title(title) in pushed_titles:
             continue
-        if is_first_run:
-            if datetime(dt.year, dt.month, dt.day, 23, 59, 59, tzinfo=BEIJING) < cutoff:
-                pushed_urls.add(url)
-                pushed_titles.add(_norm_title(title))
-                skipped_old += 1
-                continue
+        # 通用年龄过滤（包括首跑和非首跑）
+        article_end_of_day = datetime(dt.year, dt.month, dt.day, 23, 59, 59, tzinfo=BEIJING)
+        if article_end_of_day < age_cutoff:
+            pushed_urls.add(url)
+            pushed_titles.add(_norm_title(title))
+            skipped_old += 1
+            continue
+        # 首跑额外的更严格 48h 窗口
+        if is_first_run and article_end_of_day < cutoff:
+            pushed_urls.add(url)
+            pushed_titles.add(_norm_title(title))
+            skipped_old += 1
+            continue
         new_items.append((dt, url, title, content, source))
 
     state["pushed_urls"] = sorted(pushed_urls)
@@ -312,8 +324,14 @@ def main():
         log(f"!! 刷新 token 失败：{e}")
         raise
     if new_refresh != refresh_token:
-        log("注意：refresh_token 已更新，请到 GitHub Secrets 更新 MS_REFRESH_TOKEN。新值见下一行：")
-        log(new_refresh)
+        log("注意：refresh_token 已更新（在 GitHub Actions 中会通过 gh CLI 自动写回 Secret）")
+        try:
+            with open(NEW_REFRESH_TOKEN_FILE, "w") as f:
+                f.write(new_refresh)
+            log(f"  新 token 已写入 {NEW_REFRESH_TOKEN_FILE}（长度 {len(new_refresh)}）供 workflow 后续步骤读取")
+        except Exception as e:
+            log(f"  ! 写文件失败：{e}；为安全起见，请手动从这次日志找回新 token：")
+            log(new_refresh)
 
     state = load_state(state_path)
 

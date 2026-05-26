@@ -3,3 +3,4 @@ __pycache__/
 .DS_Store
 hexun-onenote-secrets.json
 ~hexun-onenote-secrets.json
+_new_refresh_token.tmp

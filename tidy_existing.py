@@ -426,21 +426,20 @@ def tidy_one_page(access_token, page, biz_map, dry_run, log):
             f"{' / 标题改' if title_changed else ''}")
         return "ok"
 
-    actions = []
-    if title_changed:
-        actions.append({
-            "target": "title",
-            "action": "replace",
-            "content": f"<title>{new_title}</title>",
-        })
-    if body_changed:
-        actions.append({
-            "target": "body",
-            "action": "replace",
-            "content": new_body,
-        })
+    # OneNote PATCH 同一次同时改 title + body 会 500，拆成两次单独的 PATCH 调用
     try:
-        patch_page(access_token, page_id, actions)
+        if body_changed:
+            patch_page(access_token, page_id, [{
+                "target": "body",
+                "action": "replace",
+                "content": new_body,
+            }])
+        if title_changed:
+            patch_page(access_token, page_id, [{
+                "target": "title",
+                "action": "replace",
+                "content": f"<title>{new_title}</title>",
+            }])
         log(f"  ✓ 已更新")
     except Exception as e:
         log(f"  ! PATCH 失败：{e}")

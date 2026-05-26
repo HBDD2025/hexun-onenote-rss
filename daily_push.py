@@ -25,7 +25,6 @@ import signal
 import sys
 import time
 import traceback
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import body_xhtml
@@ -34,7 +33,8 @@ import onenote
 import rss_lib
 
 
-PER_ARTICLE_TIMEOUT_SEC = 120   # 单篇超时硬上限（避免一篇文章卡住整个 workflow）
+PER_ARTICLE_TIMEOUT_SEC = 120   # 单篇 wallclock 硬上限（信号兜底）
+IMG_BUDGET_SEC = 30             # 单篇所有图加起来的下载预算，超了剩下全占位
 
 
 class _ArticleTimeout(Exception):
@@ -316,35 +316,31 @@ def push_one(access_token, section_id, dt, url, list_title, log,
     art_dt = parse_article_dt(publish_str, dt)
     final_title = build_page_title(art_dt, title or list_title)
 
-    # 并行下载所有图片（4 路并发），单图超时由 hexun_lib.IMG_TIMEOUT 控制
+    # 顺序下载图片，但单篇总图下载时间硬性限制 IMG_BUDGET_SEC
     image_blobs = []         # 仅保留有效图，按原顺序
     valid_indices = []       # 原图序号 → 在 image_blobs 中的新序号
-
-    def _fetch_one(idx_url):
-        idx, u = idx_url
+    budget_deadline = time.time() + IMG_BUDGET_SEC
+    budget_exhausted = False
+    for i, img_url in enumerate(image_urls):
+        if budget_exhausted or time.time() >= budget_deadline:
+            if not budget_exhausted:
+                log(f"  ! 图片下载预算 {IMG_BUDGET_SEC}s 用完，剩 {len(image_urls)-i} 张全部置为占位")
+                budget_exhausted = True
+            continue
         try:
-            bts, ctype = hexun_lib.fetch_binary(u, referer=url)
-            return idx, u, bts, ctype, None
+            bts, ctype = hexun_lib.fetch_binary(img_url, referer=url)
+        except _ArticleTimeout:
+            raise
         except Exception as e:
-            return idx, u, b"", None, str(e)
-
-    if image_urls:
-        with ThreadPoolExecutor(max_workers=4) as ex:
-            results = list(ex.map(_fetch_one, list(enumerate(image_urls))))
-    else:
-        results = []
-    # 按原 idx 顺序处理（map 保证顺序）
-    for idx, u, bts, ctype, err in results:
-        if err:
-            log(f"  ! 图片下载失败 [{idx}]：{u[:80]} → {err}")
+            log(f"  ! 图片下载失败 [{i}]：{img_url[:80]} → {e}")
+            bts, ctype = b"", None
         is_img, sniffed = _detect_image(bts)
         if not is_img:
-            if not err:
-                log(f"  ! 图片校验失败 [{idx}] ({len(bts)}B ctype={ctype})：{u[:80]}")
+            log(f"  ! 图片校验失败 [{i}] ({len(bts)}B ctype={ctype})：{img_url[:80]}")
             continue
         new_idx = len(image_blobs)
         image_blobs.append((bts, sniffed or ctype))
-        valid_indices.append((idx, new_idx))
+        valid_indices.append((i, new_idx))
 
     # 重写 XHTML：失败的 img 替换成文字标记，幸存的 img 重新编号
     failed_set = {i for i in range(len(image_urls))} - {old for old, _ in valid_indices}

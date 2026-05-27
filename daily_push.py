@@ -465,13 +465,22 @@ def push_one(access_token, section_id, dt, url, list_title, log,
     for _, new_i in valid_indices:
         xhtml = xhtml.replace(f'<img src="name:_TMP{new_i}_" />', f'<img src="name:img{new_i}" />')
 
-    # 顶部 meta：原文链接保留可点击，正文里的链接由 body_xhtml 剥掉
-    # 前面留 3 个空段落，避免长标题（3 行+）与正文重叠（直接物理推下去，比靠 CSS top 更稳）
+    # 顶部 meta：第一行 来源 + 原文链接；第二行 发布时间 + 推送时间
+    # 前面留 3 个空段落，避免长标题与正文重叠
+    push_time = datetime.now(BEIJING).strftime("%Y-%m-%d %H:%M:%S")
+    _event = os.environ.get("GITHUB_EVENT_NAME", "")
+    trigger_label = {
+        "schedule": "定时",
+        "workflow_dispatch": "手动",
+    }.get(_event, "本地")
     meta_header = (
         '<p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p>'
-        f'<p><b>来源：</b>{onenote._x_escape(source or "")} '
-        f'<b>发布时间：</b>{onenote._x_escape(publish_str or "")} '
-        f'<br/><a href="{onenote._x_escape(url)}">原文链接</a></p>'
+        f'<p><b>来源：</b>{onenote._x_escape(source or "")}'
+        f' &nbsp;|&nbsp; '
+        f'<a href="{onenote._x_escape(url)}">原文链接</a></p>'
+        f'<p><b>发布时间：</b>{onenote._x_escape(publish_str or "")}'
+        f' &nbsp;|&nbsp; '
+        f'<b>推送时间：</b>{push_time}（{trigger_label}）</p>'
         f'<hr />'
     )
     full_body = meta_header + xhtml

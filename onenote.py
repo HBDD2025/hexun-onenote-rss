@@ -121,13 +121,20 @@ _BLOCK_TAG_RX = _re_for_style.compile(
 
 
 def _inject_inline_style(html, style):
-    """给所有块级元素的开始标签加上 inline style，OneNote 才认。
-    如果元素已有 style，就把字号字体追加到前面（不覆盖原有）。"""
+    """给所有块级元素加 inline style，**追加到 style 末尾**让我们的样式优先生效。
+    （CSS 同属性后写覆盖先写，所以追加确保 margin 等被强制为我们的值。）"""
+    style_attr_rx = _re_for_style.compile(r'style="([^"]*)"')
     def _add(m):
         tag = m.group(1)
         attrs = m.group(2) or ""
-        if 'style="' in attrs:
-            return m.group(0).replace('style="', f'style="{style}; ', 1)
+        sm = style_attr_rx.search(attrs)
+        if sm:
+            existing = sm.group(1).strip().rstrip(';')
+            sep = ';' if existing else ''
+            new_attrs = (attrs[:sm.start()]
+                         + f'style="{existing}{sep}{style}"'
+                         + attrs[sm.end():])
+            return f"<{tag}{new_attrs}>"
         return f"<{tag}{attrs} style=\"{style}\">"
     return _BLOCK_TAG_RX.sub(_add, html)
 

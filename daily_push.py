@@ -259,11 +259,27 @@ SOURCE_TEXT_RULES = (
 )
 
 
-# 慧保天下的"长按..."锚点正则（大图下面的小字 caption）
-_HUIBAO_PROMO_ANCHOR_RE = re.compile(
-    r'<p[^>]*>[^<]*?长按(?:图片识别|识别二维码|二维码|图片)[^<]*?</p>',
-    re.S,
+# 慧保天下的促销 caption 关键字（必须组合出现，单"长按"不算）
+_HUIBAO_PROMO_KEYWORDS = re.compile(
+    r'长按.{0,15}(?:二维码|识别|关注|加群|入群|报名|添加|订阅|图片|图中|下方|以下)|'
+    r'扫描.{0,15}(?:二维码|图片|关注|添加|下方|以下)|'
+    r'扫码.{0,15}(?:关注|添加|报名|订阅|入群|加群|查看|获取)|'
+    r'扫一扫.{0,15}(?:关注|二维码|添加)?|'
+    r'^\s*[▲▼◆●※☆★].{0,30}$|'   # 三角/符号开头的整段（caption 特征）
+    r'添加微信|加入.{0,5}群|关注我们|订阅号|公众号.{0,5}(?:关注|订阅)'
 )
+
+
+def _find_huibao_promo_paragraphs(xhtml):
+    """yield 短促销段 <p>...</p> 的 match。判定：纯文本 ≤40 字 + 命中关键字组合。"""
+    for m in re.finditer(r'<p[^>]*>(.*?)</p>', xhtml, re.S):
+        inner_text = re.sub(r'<[^>]+>', '', m.group(1))
+        inner_text = inner_text.replace('&nbsp;', '').replace('\xa0', '')
+        inner_text = re.sub(r'\s+', '', inner_text)
+        if len(inner_text) == 0 or len(inner_text) > 40:
+            continue
+        if _HUIBAO_PROMO_KEYWORDS.search(inner_text):
+            yield m
 
 
 def _drop_img_in_xhtml(xhtml, action_match_re):
@@ -302,12 +318,13 @@ def _apply_source_rules(xhtml, image_urls, source_label):
             )
             xhtml = PLACEHOLDER_FIRST_STRIPPED + after
 
-        # 慧保天下 第二步：找"长按图片识别二维码"等 caption，删该段 + 该段前最近一张图
+        # 慧保天下 第二步：找促销 caption（长按/扫码/▲/扫描二维码 等），删该段 + 段前最近一张图
         # （处理大图广告 + caption 模式，可循环多次）
-        for _ in range(5):  # 多最多 5 次防错性死循环
-            am = _HUIBAO_PROMO_ANCHOR_RE.search(xhtml)
-            if not am:
+        for _ in range(8):  # 最多 8 次防御性死循环
+            anchors = list(_find_huibao_promo_paragraphs(xhtml))
+            if not anchors:
                 break
+            am = anchors[0]  # 先处理第一个
             last_img = None
             for im in _IMG_TAG_RE.finditer(xhtml[:am.start()]):
                 last_img = im

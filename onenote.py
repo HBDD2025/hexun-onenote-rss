@@ -163,7 +163,11 @@ def create_page(access_token, section_id, title, xhtml_body, images, created_iso
     # Presentation 部分（XHTML 全页）
     meta_created = f'<meta name="created" content="{created_iso}"/>' if created_iso else ""
     # CSS 不带空格（OneNote 严格点）；字体名带单引号；字号 14.0pt
-    element_style = f"font-family:'{PAGE_FONT_FAMILY}';font-size:{PAGE_FONT_SIZE_PT}.0pt"
+    # margin-top/bottom 压紧段落间距（OneNote 默认 5.5pt + 5.5pt，看起来空两行；压成 2pt 约半行）
+    element_style = (
+        f"font-family:'{PAGE_FONT_FAMILY}';font-size:{PAGE_FONT_SIZE_PT}.0pt;"
+        f"margin-top:0pt;margin-bottom:2pt"
+    )
     # outline 严格只放 position/left/top/width（OneNote 明确文档要求；混入 font 会被整段 strip）
     outline_style = (
         f"position:absolute;left:48px;"

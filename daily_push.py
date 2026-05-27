@@ -36,9 +36,10 @@ import rss_lib
 PER_ARTICLE_TIMEOUT_SEC = 120   # 单篇 wallclock 硬上限（信号兜底）
 IMG_BUDGET_SEC = 90             # 单篇所有图加起来的下载预算，超了剩下全占位
 
-# 占位文字（两种语义）
-PLACEHOLDER_FAILED = '<p>【此处有图片，但未下载成功】</p>'    # 图片下载/校验失败、或主动规则删图
-PLACEHOLDER_FIRST_STRIPPED = '<p>【本处已删首图】</p>'         # 源特定规则：首图被强制删
+# 占位文字（三种语义）
+PLACEHOLDER_FAILED = '<p>【此处有图片，但未下载成功】</p>'    # 图片下载/校验失败
+PLACEHOLDER_FIRST_STRIPPED = '<p>【本处已删首图】</p>'         # 源特定：首图被强制删
+PLACEHOLDER_STRIPPED = '<p>【此处有删掉的图片】</p>'             # 源特定：非首图主动删（如大图广告）
 
 
 class _ArticleTimeout(Exception):
@@ -245,14 +246,23 @@ STRIP_AGGRESSIVE_SOURCES = ("慧保天下",)
 STRIP_ALL_IMG_SOURCES = ("中国保险学会",)
 # 按文本锚点处理。每条 (source_kw, anchor_text, action)
 # action:
-#   "all_after"   → anchor 所在段落及之后全删（文字+图）
-#   "next_img"    → anchor 之后第一张 <img/> 删除（替换占位）
-#   "prev_img"    → anchor 之前最后一张 <img/> 删除（替换占位）
+#   "all_after"     → anchor 所在段落及之后全删（文字+图）
+#   "next_img"      → anchor 之后第一张 <img/> 删除（替换占位）
+#   "prev_img"      → anchor 之前最后一张 <img/> 删除（替换占位）
+#   "imgs_after_strip" → anchor 之后所有 <img/> 删除（全部替换占位）
 SOURCE_TEXT_RULES = (
-    ("中国银行保险报", "来源:", "all_after"),   # 注意：先匹配半角冒号（被 全角 包含）
+    ("中国银行保险报", "来源:", "all_after"),   # 先匹配半角冒号
     ("中国银行保险报", "来源：", "all_after"),
     ("保观",          "保观 | 聚焦保险创新", "next_img"),
+    ("保险一哥",       "请加微信", "imgs_after_strip"),
     ("保险一哥",       "文章原文", "prev_img"),
+)
+
+
+# 慧保天下的"长按..."锚点正则（大图下面的小字 caption）
+_HUIBAO_PROMO_ANCHOR_RE = re.compile(
+    r'<p[^>]*>[^<]*?长按(?:图片识别|识别二维码|二维码|图片)[^<]*?</p>',
+    re.S,
 )
 
 
@@ -282,7 +292,7 @@ def _apply_source_rules(xhtml, image_urls, source_label):
     aggressive = any(s in source_label for s in STRIP_AGGRESSIVE_SOURCES)
     simple_first = any(s in source_label for s in STRIP_FIRST_IMG_SOURCES)
     if aggressive:
-        # 慧保天下：删 [开头到首图（含）] + [首图后第一段]，首图位置插占位
+        # 慧保天下 第一步：删 [开头到首图（含）] + [首图后第一段]，首图位置插占位
         m = re.search(r'<img\s+src="name:img0"\s*/>', xhtml)
         if m:
             after = xhtml[m.end():]
@@ -291,6 +301,25 @@ def _apply_source_rules(xhtml, image_urls, source_label):
                 '', after, count=1, flags=re.S,
             )
             xhtml = PLACEHOLDER_FIRST_STRIPPED + after
+
+        # 慧保天下 第二步：找"长按图片识别二维码"等 caption，删该段 + 该段前最近一张图
+        # （处理大图广告 + caption 模式，可循环多次）
+        for _ in range(5):  # 多最多 5 次防错性死循环
+            am = _HUIBAO_PROMO_ANCHOR_RE.search(xhtml)
+            if not am:
+                break
+            last_img = None
+            for im in _IMG_TAG_RE.finditer(xhtml[:am.start()]):
+                last_img = im
+            if last_img:
+                xhtml = (
+                    xhtml[:last_img.start()]
+                    + PLACEHOLDER_STRIPPED
+                    + xhtml[last_img.end():am.start()]
+                    + xhtml[am.end():]
+                )
+            else:
+                xhtml = xhtml[:am.start()] + xhtml[am.end():]
     elif simple_first:
         # 把首图（含包裹 <p>）替换为占位段
         new_xhtml, n = re.subn(
@@ -331,6 +360,11 @@ def _apply_source_rules(xhtml, image_urls, source_label):
                 xhtml = (before[:last_img.start()]
                          + PLACEHOLDER_FAILED
                          + before[last_img.end():] + after)
+        elif action == "imgs_after_strip":
+            head = xhtml[:idx + len(anchor)]
+            tail = xhtml[idx + len(anchor):]
+            tail = _IMG_TAG_RE.sub(PLACEHOLDER_STRIPPED, tail)
+            xhtml = head + tail
 
     # 4. 最终重编号：根据 xhtml 里剩下的 name:imgN 引用，连续编号 0..K-1，过滤 image_urls
     used = sorted(set(int(m.group(1)) for m in re.finditer(r'name:img(\d+)', xhtml)))
@@ -420,7 +454,7 @@ def push_one(access_token, section_id, dt, url, list_title, log,
         '<p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p>'
         f'<p><b>来源：</b>{onenote._x_escape(source or "")} '
         f'<b>发布时间：</b>{onenote._x_escape(publish_str or "")} '
-        f'<br/><b>原文：</b><a href="{onenote._x_escape(url)}">{onenote._x_escape(url)}</a></p>'
+        f'<br/><a href="{onenote._x_escape(url)}">原文链接</a></p>'
         f'<hr />'
     )
     full_body = meta_header + xhtml

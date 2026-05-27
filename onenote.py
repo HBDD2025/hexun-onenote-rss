@@ -170,10 +170,11 @@ def create_page(access_token, section_id, title, xhtml_body, images, created_iso
     # Presentation 部分（XHTML 全页）
     meta_created = f'<meta name="created" content="{created_iso}"/>' if created_iso else ""
     # CSS 不带空格（OneNote 严格点）；字体名带单引号；字号 14.0pt
-    # margin-top/bottom 压紧段落间距（OneNote 默认 5.5pt + 5.5pt，看起来空两行；压成 2pt 约半行）
+    # margin-bottom 控制段落间距：≈ 1 行（14pt 字号下 ~12pt 接近一倍行高，看起来"空一行"）
+    # 配合 body_xhtml 已经把伪空段 <p><br/></p> 清掉，间距能在所有源上保持一致
     element_style = (
         f"font-family:'{PAGE_FONT_FAMILY}';font-size:{PAGE_FONT_SIZE_PT}.0pt;"
-        f"margin-top:0pt;margin-bottom:2pt"
+        f"margin-top:0pt;margin-bottom:12.0pt"
     )
     # outline 严格只放 position/left/top/width（OneNote 明确文档要求；混入 font 会被整段 strip）
     outline_style = (

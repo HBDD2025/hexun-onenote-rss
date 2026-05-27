@@ -236,6 +236,73 @@ def _detect_image(bts):
     return False, None
 
 
+# 小于这个 min(width, height) 的图视作图标/装饰，整段抹掉（不放占位）
+TINY_IMAGE_MIN_SIDE = 80
+
+
+def _get_image_dims(bts):
+    """从已下载图片字节里读 (width, height)。失败返回 (None, None)。
+    支持 PNG / JPEG / GIF / WebP（VP8/VP8L/VP8X），全部 stdlib 实现。"""
+    if not bts or len(bts) < 24:
+        return None, None
+    try:
+        # PNG: IHDR 在偏移 12，宽高紧随其后（big-endian 4B）
+        if bts[:8] == b"\x89PNG\r\n\x1a\n" and bts[12:16] == b"IHDR":
+            return (int.from_bytes(bts[16:20], "big"),
+                    int.from_bytes(bts[20:24], "big"))
+        # GIF: 偏移 6 处 width/height 小端 2B
+        if bts[:6] in (b"GIF87a", b"GIF89a"):
+            return (int.from_bytes(bts[6:8], "little"),
+                    int.from_bytes(bts[8:10], "little"))
+        # JPEG: 扫 SOF 段
+        if bts[:3] == b"\xff\xd8\xff":
+            i = 2
+            n = len(bts)
+            while i + 9 < n:
+                if bts[i] != 0xFF:
+                    break
+                # 跳过填充 0xFF
+                while i < n and bts[i] == 0xFF:
+                    i += 1
+                if i >= n:
+                    break
+                marker = bts[i]
+                i += 1
+                # 无 length 的标记
+                if marker == 0xD8 or marker == 0xD9 or 0xD0 <= marker <= 0xD7:
+                    continue
+                if i + 1 >= n:
+                    break
+                seg_len = int.from_bytes(bts[i:i+2], "big")
+                # SOFn（除 0xC4 DHT、0xC8 JPG、0xCC DAC）
+                if marker in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7,
+                              0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF):
+                    if i + 7 < n:
+                        h = int.from_bytes(bts[i+3:i+5], "big")
+                        w = int.from_bytes(bts[i+5:i+7], "big")
+                        return w, h
+                i += seg_len
+        # WebP
+        if bts[:4] == b"RIFF" and bts[8:12] == b"WEBP":
+            fourcc = bts[12:16]
+            if fourcc == b"VP8X" and len(bts) >= 30:
+                w = (int.from_bytes(bts[24:27], "little") & 0xFFFFFF) + 1
+                h = (int.from_bytes(bts[27:30], "little") & 0xFFFFFF) + 1
+                return w, h
+            if fourcc == b"VP8 " and len(bts) >= 30:
+                w = int.from_bytes(bts[26:28], "little") & 0x3FFF
+                h = int.from_bytes(bts[28:30], "little") & 0x3FFF
+                return w, h
+            if fourcc == b"VP8L" and len(bts) >= 25 and bts[20] == 0x2F:
+                b1, b2, b3, b4 = bts[21], bts[22], bts[23], bts[24]
+                w = (((b2 & 0x3F) << 8) | b1) + 1
+                h = (((b4 & 0x0F) << 10) | (b3 << 2) | ((b2 & 0xC0) >> 6)) + 1
+                return w, h
+    except Exception:
+        pass
+    return None, None
+
+
 # ---------- 源特定规则 ----------
 
 # 每篇文章首图永远是 banner/logo，强制删除
@@ -244,6 +311,8 @@ STRIP_FIRST_IMG_SOURCES = ("慧保天下", "中国银行保险报", "今日保",
 STRIP_AGGRESSIVE_SOURCES = ("慧保天下",)
 # 全部图删除
 STRIP_ALL_IMG_SOURCES = ("中国保险学会",)
+# 最后一张图永远是装饰（中国银行保险报常在文末贴一张落款/二维码图），静默删除（无占位）
+STRIP_LAST_IMG_SOURCES = ("中国银行保险报",)
 # 按文本锚点处理。每条 (source_kw, anchor_text, action)
 # action:
 #   "all_after"     → anchor 所在段落及之后全删（文字+图）
@@ -350,6 +419,24 @@ def _apply_source_rules(xhtml, image_urls, source_label):
             )
         xhtml = new_xhtml
 
+    # 2b. 末图删除（中国银行保险报常在文末贴装饰图，无文本锚点时漏网）
+    if any(s in source_label for s in STRIP_LAST_IMG_SOURCES):
+        # 优先连同包裹 <p> 一起删；否则裸 <img/> 删
+        last_p = None
+        for m in re.finditer(
+            r'<p[^>]*>\s*<img\s+src="name:img\d+"\s*/>\s*</p>',
+            xhtml,
+        ):
+            last_p = m
+        if last_p:
+            xhtml = xhtml[:last_p.start()] + xhtml[last_p.end():]
+        else:
+            last_bare = None
+            for m in _IMG_TAG_RE.finditer(xhtml):
+                last_bare = m
+            if last_bare:
+                xhtml = xhtml[:last_bare.start()] + xhtml[last_bare.end():]
+
     # 3. 文本锚点规则
     for src_kw, anchor, action in SOURCE_TEXT_RULES:
         if src_kw not in source_label:
@@ -431,6 +518,7 @@ def push_one(access_token, section_id, dt, url, list_title, log,
     # 顺序下载图片，但单篇总图下载时间硬性限制 IMG_BUDGET_SEC
     image_blobs = []         # 仅保留有效图，按原顺序
     valid_indices = []       # 原图序号 → 在 image_blobs 中的新序号
+    tiny_indices = set()     # 被识别为小图标的原图序号，从正文里整段抹掉（无占位）
     budget_deadline = time.time() + IMG_BUDGET_SEC
     budget_exhausted = False
     for i, img_url in enumerate(image_urls):
@@ -450,12 +538,34 @@ def push_one(access_token, section_id, dt, url, list_title, log,
         if not is_img:
             log(f"  ! 图片校验失败 [{i}] ({len(bts)}B ctype={ctype})：{img_url[:80]}")
             continue
+        # 小图标检测：min(w,h) < TINY_IMAGE_MIN_SIDE 视作装饰图，直接从正文抹掉
+        # （微信图文常把 16×16~50×50 的 emoji/箭头/角标塞进 <img>，OneNote 会把
+        # 这些小图按 outline 宽度放大成大图，必须识别去除）
+        w, h = _get_image_dims(bts)
+        if w and h and min(w, h) < TINY_IMAGE_MIN_SIDE:
+            log(f"  · 忽略小图标 [{i}] {w}×{h}：{img_url[:60]}")
+            tiny_indices.add(i)
+            continue
         new_idx = len(image_blobs)
         image_blobs.append((bts, sniffed or ctype))
         valid_indices.append((i, new_idx))
 
+    # 抹掉小图标的 <img> 引用（连同独占的 <p> 包裹）
+    for old_i in sorted(tiny_indices):
+        # 先试整段 <p><img/></p>
+        xhtml = re.sub(
+            r'<p[^>]*>\s*<img\s+src="name:img' + str(old_i) + r'"\s*/>\s*</p>',
+            '', xhtml,
+        )
+        # 兜底：裸 <img/>（可能和文字混排）
+        xhtml = xhtml.replace(f'<img src="name:img{old_i}" />', '')
+
     # 重写 XHTML：失败的 img 替换成文字标记，幸存的 img 重新编号
-    failed_set = {i for i in range(len(image_urls))} - {old for old, _ in valid_indices}
+    failed_set = (
+        {i for i in range(len(image_urls))}
+        - {old for old, _ in valid_indices}
+        - tiny_indices
+    )
     for old_i in sorted(failed_set):
         xhtml = xhtml.replace(f'<img src="name:img{old_i}" />', PLACEHOLDER_FAILED)
     # 把幸存图重新编号到 0..N-1

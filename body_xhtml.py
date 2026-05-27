@@ -112,6 +112,26 @@ class XhtmlBuilder(HTMLParser):
         # 清掉 OneNote 显示中讨厌的空段
         out = re.sub(r"<p>\s*</p>", "", out)
         out = re.sub(r"<div>\s*</div>", "", out)
+        # 关键：WeChat 源（尤其中国银行保险报）爱用 <p><br/></p> 或 <p>&nbsp;</p>
+        # 当段落分隔，这种"伪空段落"在 OneNote 里会占整整一行。必须连同内嵌的
+        # 内联格式标签一起识别并清除，否则段距永远是 2 行。
+        # 注意：图段（<p><img/></p>）和 hr 必须保留。
+        empty_p_rx = re.compile(
+            r'<p[^>]*>'
+            r'(?:\s|\xa0|&nbsp;'
+            r'|<br\s*/?>'
+            r'|<span[^>]*>|</span>'
+            r'|<b>|</b>|<i>|</i>|<em[^>]*>|</em>|<strong[^>]*>|</strong>'
+            r'|<u>|</u>|<sup[^>]*>|</sup>|<sub[^>]*>|</sub>'
+            r')*</p>',
+            re.I,
+        )
+        # 多轮：嵌套清空后可能暴露新的空段
+        for _ in range(4):
+            new_out = empty_p_rx.sub("", out)
+            if new_out == out:
+                break
+            out = new_out
         return out.strip()
 
 

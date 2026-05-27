@@ -2,11 +2,11 @@ name: hexun-onenote-push
 
 on:
   schedule:
-    # 北京时间 06:00 / 12:00 / 17:00（= UTC 22:00 前一日 / 04:00 / 09:00）
-    # GitHub 调度有时会延迟 5–30 分钟（高峰时段），属正常现象
-    - cron: "0 22 * * *"
-    - cron: "0 4 * * *"
-    - cron: "0 9 * * *"
+    # 错开整点（GitHub 在 :00 / :30 高峰常延迟），用非 5 分钟倍数的"冷"分钟
+    # 北京 06:07 / 12:03 / 17:07（= UTC 22:07 前一日 / 04:03 / 09:07）
+    - cron: "7 22 * * *"
+    - cron: "3 4 * * *"
+    - cron: "7 9 * * *"
   workflow_dispatch:   # 允许在 Actions 页面手动点 "Run workflow"
 
 permissions:

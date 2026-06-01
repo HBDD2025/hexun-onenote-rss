@@ -5,7 +5,7 @@
 
 被 GitHub Actions workflow 在 daily_push 之后调用。生成的 feed.xml 通过
 GitHub Pages 发布，URL 形如：
-  https://HBDD2025.github.io/hexun-onenote-rss/feed.xml
+  https://hbdd2025.github.io/hexun-onenote-rss/feed.xml
 
 也顺便生成 docs/index.html 当落地页，方便人肉浏览。
 """
@@ -27,7 +27,7 @@ OUT_INDEX = os.path.join(OUT_DIR, "index.html")
 
 # Channel meta
 CHANNEL_TITLE = "保险行业聚合（和讯 + 公众号）"
-CHANNEL_LINK = "https://HBDD2025.github.io/hexun-onenote-rss/"
+CHANNEL_LINK = "https://hbdd2025.github.io/hexun-onenote-rss/"
 CHANNEL_DESC = "和讯保险 5 个栏目 + 14 个公众号 RSS 聚合，每日 3 次更新"
 
 

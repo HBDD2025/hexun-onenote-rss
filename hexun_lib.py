@@ -23,12 +23,21 @@ LIST_URL = "https://insurance.hexun.com/bxhyzx/index.html"  # 保留以兼容旧
 
 # 同步源：5 个和讯保险栏目的列表页
 LIST_URLS = [
-    "https://insurance.hexun.com/bxhyzx/index.html",  # 行业资讯
-    "https://insurance.hexun.com/bxjgdt/index.html",  # 监管动态
-    "https://insurance.hexun.com/bxgsxw/index.html",  # 公司新闻
-    "https://insurance.hexun.com/bxzjyy/index.html",  # 中介营销
-    "https://insurance.hexun.com/bxscpl/",            # 市场评论
+    "https://insurance.hexun.com/bxhyzx/index.html",  # 行业
+    "https://insurance.hexun.com/bxjgdt/index.html",  # 监管
+    "https://insurance.hexun.com/bxgsxw/index.html",  # 公司
+    "https://insurance.hexun.com/bxzjyy/index.html",  # 保险资金运用
+    "https://insurance.hexun.com/bxscpl/",            # 评论与研究
 ]
+
+# 列表页 URL → 频道名（用于 OneNote 页眉显示"推送自和讯保险的XX频道"）
+LIST_CHANNELS = {
+    "https://insurance.hexun.com/bxhyzx/index.html": "行业",
+    "https://insurance.hexun.com/bxjgdt/index.html": "监管",
+    "https://insurance.hexun.com/bxgsxw/index.html": "公司",
+    "https://insurance.hexun.com/bxzjyy/index.html": "保险资金运用",
+    "https://insurance.hexun.com/bxscpl/":            "评论与研究",
+}
 
 RETRIES = 5       # 通用重试次数（文章 HTML / 列表页）。腾讯 EdgeOne 偶发挑战，多试几次有概率命中放行
 IMG_RETRIES = 1   # 图片专用：fail fast，下不到就放弃

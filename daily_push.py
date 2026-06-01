@@ -158,19 +158,22 @@ def collect_new_articles(state, log):
         log(f"忽略 {age_cutoff.date()} 之前的文章（>{MAX_AGE_DAYS} 天，防远古内容意外补入）")
 
     # --- 1a. 抓和讯 5 个栏目 ---
-    all_entries = []  # 统一形状: (dt, url, title, content_or_none, source_label)
+    # 统一形状: (dt, url, title, content_or_none, source_label, hexun_channel)
+    # hexun_channel 仅和讯有值（行业/监管/公司/保险资金运用/评论与研究），RSS 为 ""
+    all_entries = []
     hexun_total = 0
     for list_url in hexun_lib.LIST_URLS:
+        channel = hexun_lib.LIST_CHANNELS.get(list_url, "")
         try:
             raw = hexun_lib.fetch(list_url, referer="https://insurance.hexun.com/")
             entries = hexun_lib.parse_list_page(hexun_lib.decode_html(raw))
-            log(f"和讯 {list_url} → {len(entries)} 条")
+            log(f"和讯[{channel}] {list_url} → {len(entries)} 条")
             if len(entries) == 0:
                 # 可能是 WAF 给了非挑战页但内容空 / 页面结构变了，提示一下排查
                 log(f"    （0 条警告：拉到 {len(raw)}B，可能页面结构变化或反爬过滤）")
             hexun_total += len(entries)
             for dt, url, title in entries:
-                all_entries.append((dt, url, title, None, "和讯"))
+                all_entries.append((dt, url, title, None, "和讯", channel))
         except Exception as e:
             log(f"  ! 列表抓取失败：{list_url} → {e}")
     if hexun_total == 0:
@@ -188,7 +191,7 @@ def collect_new_articles(state, log):
                     continue
                 all_entries.append((
                     it["date"], it["link"], it["title"],
-                    it["content_html"], chan_title or "RSS",
+                    it["content_html"], chan_title or "RSS", "",
                 ))
         except Exception as e:
             log(f"  ! RSS 拉取失败：{feed_url[-30:]} → {e}")
@@ -221,7 +224,7 @@ def collect_new_articles(state, log):
     # --- 4. 对比 state，排除已推过的 + 超过 MAX_AGE_DAYS 的 ---
     new_items = []
     skipped_old = 0
-    for dt, url, title, content, source in deduped:
+    for dt, url, title, content, source, channel in deduped:
         if url in pushed_urls:
             continue
         if _norm_title(title) in pushed_titles:
@@ -239,7 +242,7 @@ def collect_new_articles(state, log):
             pushed_titles.add(_norm_title(title))
             skipped_old += 1
             continue
-        new_items.append((dt, url, title, content, source))
+        new_items.append((dt, url, title, content, source, channel))
 
     state["pushed_urls"] = sorted(pushed_urls)
     state["pushed_titles"] = sorted(pushed_titles)
@@ -525,10 +528,12 @@ _maybe_strip_first_image = _apply_source_rules
 
 
 def push_one(access_token, section_id, dt, url, list_title, log,
-             prefetched_content=None, source_label=None):
+             prefetched_content=None, source_label=None, hexun_channel=""):
     """
     prefetched_content：RSS 源已带正文 HTML 时传入；为 None 则按 hexun 流程拉文章页。
     source_label：用于顶部 meta 显示（RSS 用频道名，hexun 用原文里 <a> 的来源）。
+    hexun_channel：和讯文章所在的栏目名（行业/监管/公司/保险资金运用/评论与研究），
+                  非和讯（RSS 等）传空串。
     """
     if prefetched_content is not None:
         # RSS 路径：正文已有，无需再请求
@@ -630,9 +635,16 @@ def push_one(access_token, section_id, dt, url, list_title, log,
         "schedule": "定时",
         "workflow_dispatch": "手动",
     }.get(_event, "本地")
+    # 和讯文章：来源行前面再加一行"推送自和讯保险的「XX」频道"
+    channel_line = ""
+    if hexun_channel:
+        channel_line = (
+            f'<p><b>推送自和讯保险的「{onenote._x_escape(hexun_channel)}」频道</b></p>'
+        )
     meta_header = (
         '<p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p>'
-        f'<p><b>来源：</b>{onenote._x_escape(source or "")}'
+        + channel_line
+        + f'<p><b>来源：</b>{onenote._x_escape(source or "")}'
         f' &nbsp;|&nbsp; '
         f'<a href="{onenote._x_escape(url)}">原文链接</a></p>'
         f'<p><b>发布时间：</b>{onenote._x_escape(publish_str or "")}'
@@ -726,14 +738,15 @@ def main():
         except Exception:
             pass
 
-    for i, (dt, url, title, content, source) in enumerate(items, 1):
-        log(f"[{i}/{len(items)}] {dt} [{source}] {title[:40]}")
+    for i, (dt, url, title, content, source, channel) in enumerate(items, 1):
+        log(f"[{i}/{len(items)}] {dt} [{source}{('/'+channel) if channel else ''}] {title[:40]}")
         if has_signal:
             signal.alarm(PER_ARTICLE_TIMEOUT_SEC)
         try:
             result = push_one(
                 access_token, section_id, dt, url, title, log,
                 prefetched_content=content, source_label=source,
+                hexun_channel=channel,
             )
             actual_title = result.get("title")
             pushed_urls.add(url)

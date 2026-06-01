@@ -609,41 +609,42 @@ def push_one(access_token, section_id, dt, url, list_title, log,
     for old_i in sorted(failed_set):
         xhtml = xhtml.replace(f'<img src="name:img{old_i}" />', PLACEHOLDER_FAILED)
 
-    # === RSS 用：把 name:imgN 引用替换成真实 URL（在 OneNote 重编号之前） ===
+    # === RSS 用正文：把 name:imgN 引用替换成真实 URL（在 OneNote 重编号之前） ===
     # OneNote 用的是 name:imgN multipart 引用，对 RSS 客户端没意义；RSS 客户端要的是
     # 能直接 <img src="https://..."/> 渲染的真实 URL。所以在这里 fork 一份给 RSS 用
-    rss_content = xhtml
+    rss_body = xhtml
     for old_i, _ in valid_indices:
         if old_i < len(image_urls):
-            rss_content = rss_content.replace(
+            rss_body = rss_body.replace(
                 f'<img src="name:img{old_i}" />',
                 f'<img src="{onenote._x_escape(image_urls[old_i])}" />',
             )
 
-    # 把幸存图重新编号到 0..N-1（这是给 OneNote 用的，不影响 rss_content）
+    # 把幸存图重新编号到 0..N-1（这是给 OneNote 用的，不影响 rss_body）
     # 用临时占位防止重号覆盖
     for old_i, new_i in valid_indices:
         xhtml = xhtml.replace(f'<img src="name:img{old_i}" />', f'<img src="name:_TMP{new_i}_" />')
     for _, new_i in valid_indices:
         xhtml = xhtml.replace(f'<img src="name:_TMP{new_i}_" />', f'<img src="name:img{new_i}" />')
 
-    # 顶部 meta：第一行 来源 + 原文链接；第二行 发布时间 + 推送时间
-    # 前面留 3 个空段落，避免长标题与正文重叠
+    # === 构造 meta 元数据块（同一份给 OneNote 和 RSS 共用） ===
+    # 行 1（仅和讯）：推送自和讯保险的「XX」频道
+    # 行 2：来源 + 原文链接
+    # 行 3：发布时间 + 推送时间
+    # 行 4：<hr/> 分隔线
     push_time = datetime.now(BEIJING).strftime("%Y-%m-%d %H:%M:%S")
     _event = os.environ.get("GITHUB_EVENT_NAME", "")
     trigger_label = {
         "schedule": "定时",
         "workflow_dispatch": "手动",
     }.get(_event, "本地")
-    # 和讯文章：来源行前面再加一行"推送自和讯保险的「XX」频道"
     channel_line = ""
     if hexun_channel:
         channel_line = (
             f'<p><b>推送自和讯保险的「{onenote._x_escape(hexun_channel)}」频道</b></p>'
         )
-    meta_header = (
-        '<p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p>'
-        + channel_line
+    meta_block = (
+        channel_line
         + f'<p><b>来源：</b>{onenote._x_escape(source or "")}'
         f' &nbsp;|&nbsp; '
         f'<a href="{onenote._x_escape(url)}">原文链接</a></p>'
@@ -652,7 +653,13 @@ def push_one(access_token, section_id, dt, url, list_title, log,
         f'<b>推送时间：</b>{push_time}（{trigger_label}）</p>'
         f'<hr />'
     )
-    full_body = meta_header + xhtml
+
+    # OneNote：3 个空段做版面留白（避免长标题与正文重叠）+ meta + 正文
+    meta_header_onenote = '<p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p>' + meta_block
+    full_body = meta_header_onenote + xhtml
+
+    # RSS：无需空段留白，直接 meta + 正文（图已替换成真实 URL）
+    rss_content = meta_block + rss_body
 
     onenote.create_page(
         access_token, section_id,

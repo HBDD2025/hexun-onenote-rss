@@ -3,10 +3,10 @@ name: hexun-onenote-push
 on:
   schedule:
     # 错开整点（GitHub 在 :00 / :30 高峰常延迟），用非 5 分钟倍数的"冷"分钟
-    # 北京 06:07 / 12:03 / 17:07（= UTC 22:07 前一日 / 04:03 / 09:07）
-    - cron: "7 22 * * *"
+    # 北京 08:07 / 12:03 / 19:07（= UTC 00:07 / 04:03 / 11:07）
+    - cron: "7 0 * * *"
     - cron: "3 4 * * *"
-    - cron: "7 9 * * *"
+    - cron: "7 11 * * *"
   workflow_dispatch:   # 允许在 Actions 页面手动点 "Run workflow"
 
 permissions:
@@ -63,11 +63,13 @@ jobs:
             echo "feed_items.json 不存在，跳过 RSS 生成（首跑或全失败时正常）"
           fi
 
-      - name: Send to Kindle (morning only / manual)
-        # 仅早晨那条 cron 7 22 * * * (UTC = 北京 06:07) 触发；手动跑也触发。
-        # 这样 Kindle 一天收 1 次（早间一份"晨报"），避免一天 3 次刷屏。
+      - name: Send to Kindle (morning + evening / manual)
+        # 早晨 7 0 * * * (UTC 00:07 = 北京 08:07) 和晚间 7 11 * * * (UTC 11:07 = 北京 19:07)
+        # 各推一次；中午 12:03 那一次跳过，避免一天三次刷屏。手动跑也推。
         if: |
-          (github.event_name == 'schedule' && github.event.schedule == '7 22 * * *')
+          (github.event_name == 'schedule'
+           && (github.event.schedule == '7 0 * * *'
+               || github.event.schedule == '7 11 * * *'))
           || github.event_name == 'workflow_dispatch'
         env:
           KINDLE_EMAIL: ${{ secrets.KINDLE_EMAIL }}

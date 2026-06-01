@@ -53,9 +53,14 @@ JINTIAN_COOKIE = _load_jintian_cookie()
 
 
 # ---------- 代理（仅针对 hexun.com，绕开腾讯 EdgeOne 对 GH Actions IP 的拦截）----------
-# 仅当 HEXUN_PROXY_URL 设置时启用；格式 http(s)://[user:pass@]host:port
+# 两种格式自动识别：
+#   1. 正向代理（Squid / 付费住宅代理）：HEXUN_PROXY_URL=http://[user:pass@]host:port
+#      代码用 urllib.request.ProxyHandler 透传
+#   2. 反向代理模板（Cloudflare Worker 等）：HEXUN_PROXY_URL=https://your.worker.dev/?url={url}
+#      代码会把 {url} 替换成 urlencoded 目标 URL，直接 GET 这个改写后的地址
 # 不影响 OneNote / WeChat / jintiankansha 等其他域名
 HEXUN_PROXY_URL = os.environ.get("HEXUN_PROXY_URL", "").strip()
+_IS_REVERSE_PROXY = "{url}" in HEXUN_PROXY_URL
 _PROXY_LOGGED_ONCE = False
 
 
@@ -63,24 +68,42 @@ def _should_proxy(url):
     return bool(HEXUN_PROXY_URL) and "hexun.com" in url
 
 
+def _proxy_log_once():
+    global _PROXY_LOGGED_ONCE
+    if _PROXY_LOGGED_ONCE:
+        return
+    _PROXY_LOGGED_ONCE = True
+    # user:pass 打码再打印
+    safe = re.sub(r"://([^@/]+)@", "://***@", HEXUN_PROXY_URL)
+    mode = "反向代理模板" if _IS_REVERSE_PROXY else "正向代理"
+    print(f"hexun_lib: 启用 {mode}  {safe}", file=sys.stderr, flush=True)
+
+
 def _open(req, url, timeout):
     """统一开 request；hexun.com 走代理，其他直连。"""
-    global _PROXY_LOGGED_ONCE
-    if _should_proxy(url):
-        # 用一次性 opener 防止全局 install_opener 污染 jintiankansha 等其他调用
-        opener = urllib.request.build_opener(
-            urllib.request.ProxyHandler({
-                "http": HEXUN_PROXY_URL,
-                "https": HEXUN_PROXY_URL,
-            })
-        )
-        if not _PROXY_LOGGED_ONCE:
-            # 把 user:pass 部分打码，只把 host 留给日志
-            safe = re.sub(r"://([^@/]+)@", "://***@", HEXUN_PROXY_URL)
-            print(f"hexun_lib: 启用代理 {safe} → {url[:60]}", file=sys.stderr, flush=True)
-            _PROXY_LOGGED_ONCE = True
-        return opener.open(req, timeout=timeout)
-    return urllib.request.urlopen(req, timeout=timeout)
+    if not _should_proxy(url):
+        return urllib.request.urlopen(req, timeout=timeout)
+    _proxy_log_once()
+    if _IS_REVERSE_PROXY:
+        # 反向代理：把目标 URL urlencoded 后塞进模板，GET 这个改写后的地址
+        # 注意 req 自带的 headers (UA/Referer/Cookie) 仍要带上，所以重新建 Request
+        import urllib.parse as _up
+        rewritten = HEXUN_PROXY_URL.replace("{url}", _up.quote(url, safe=""))
+        new_req = urllib.request.Request(rewritten)
+        for k, v in req.header_items():
+            # Host 一定要丢，让 urllib 用 rewritten URL 自己的 Host
+            if k.lower() == "host":
+                continue
+            new_req.add_header(k, v)
+        return urllib.request.urlopen(new_req, timeout=timeout)
+    # 正向代理：标准 ProxyHandler
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({
+            "http": HEXUN_PROXY_URL,
+            "https": HEXUN_PROXY_URL,
+        })
+    )
+    return opener.open(req, timeout=timeout)
 
 
 def _new_request(url, cookies=None, referer=None):

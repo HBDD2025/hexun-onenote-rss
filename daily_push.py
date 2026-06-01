@@ -131,15 +131,22 @@ def collect_new_articles(state, log):
 
     # --- 1a. 抓和讯 5 个栏目 ---
     all_entries = []  # 统一形状: (dt, url, title, content_or_none, source_label)
+    hexun_total = 0
     for list_url in hexun_lib.LIST_URLS:
         try:
             raw = hexun_lib.fetch(list_url, referer="https://insurance.hexun.com/")
             entries = hexun_lib.parse_list_page(hexun_lib.decode_html(raw))
             log(f"和讯 {list_url} → {len(entries)} 条")
+            if len(entries) == 0:
+                # 可能是 WAF 给了非挑战页但内容空 / 页面结构变了，提示一下排查
+                log(f"    （0 条警告：拉到 {len(raw)}B，可能页面结构变化或反爬过滤）")
+            hexun_total += len(entries)
             for dt, url, title in entries:
                 all_entries.append((dt, url, title, None, "和讯"))
         except Exception as e:
             log(f"  ! 列表抓取失败：{list_url} → {e}")
+    if hexun_total == 0:
+        log("!! 和讯 5 个栏目全部 0 条 —— 极可能 GitHub Actions IP 被腾讯 EdgeOne 拦截，查上面 stderr 的 CHAOS_VM 提示")
 
     # --- 1b. 抓 14 个 RSS 源 ---
     for feed_url in rss_lib.FEEDS:

@@ -4,6 +4,7 @@
 import gzip
 import random
 import re
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -13,6 +14,8 @@ UA_LIST = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
 ]
 
 LIST_URL = "https://insurance.hexun.com/bxhyzx/index.html"  # 保留以兼容旧调用
@@ -26,7 +29,7 @@ LIST_URLS = [
     "https://insurance.hexun.com/bxscpl/",            # 市场评论
 ]
 
-RETRIES = 3       # 通用重试次数（文章 HTML / 列表页）
+RETRIES = 5       # 通用重试次数（文章 HTML / 列表页）。腾讯 EdgeOne 偶发挑战，多试几次有概率命中放行
 IMG_RETRIES = 1   # 图片专用：fail fast，下不到就放弃
 IMG_TIMEOUT = 15  # 图片单次请求超时（秒）
 
@@ -76,9 +79,17 @@ def _solve_challenge(raw_bytes):
 
 
 def fetch(url, referer=None):
-    """HTTP GET with anti-bot challenge handling and retry. Returns raw bytes."""
+    """HTTP GET with anti-bot challenge handling and retry. Returns raw bytes.
+
+    挑战识别两种：
+      1. 旧 EO_Bot：< 3KB + `__tst_status`，可本地解（_solve_challenge）
+      2. 新腾讯 EdgeOne：含 `__TENCENT_CHAOS_VM`/`TENCENT_CHAOS`，需要 JS VM 才能解，
+         本地解不了——只能换 UA + 拉长间隔重试期望命中放行，全部用完就抛错让上层
+         logger 看到（避免 parse 出 0 条静默漏推）。
+    """
     last_err = None
     cookies = None
+    challenge_hits = 0
     for attempt in range(RETRIES):
         try:
             req = _new_request(url, cookies=cookies, referer=referer)
@@ -86,16 +97,34 @@ def fetch(url, referer=None):
                 raw = r.read()
                 if r.headers.get("Content-Encoding") == "gzip":
                     raw = gzip.decompress(raw)
+                # 旧版挑战
                 if len(raw) < 3000 and b"__tst_status" in raw:
                     solved = _solve_challenge(raw)
                     if solved:
                         cookies = solved
                         time.sleep(random.uniform(0.5, 1.0))
                         continue
+                # 新版腾讯 EdgeOne 虚拟机挑战 — 本地无 JS 解释器，重试期望换 UA/换时机命中放行
+                if b"__TENCENT_CHAOS_VM" in raw or b"TENCENT_CHAOS" in raw:
+                    challenge_hits += 1
+                    print(
+                        f"!! hexun_lib.fetch: 收到腾讯 EdgeOne CHAOS_VM 挑战页 "
+                        f"({len(raw)}B, attempt={attempt+1}/{RETRIES}) {url}",
+                        file=sys.stderr, flush=True,
+                    )
+                    # 长退避 + 重新走 _new_request（会重新 random.choice UA）
+                    cookies = None
+                    time.sleep(3 + attempt * 4 + random.uniform(0, 3))
+                    continue
                 return raw
         except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError) as e:
             last_err = e
             time.sleep(2 + attempt * 2)
+    if challenge_hits:
+        raise RuntimeError(
+            f"hexun WAF 反复挑战 {challenge_hits} 次（疑似 GitHub Actions IP 被腾讯 "
+            f"EdgeOne CHAOS_VM 拦截，无法本地解 JS 挑战）：{url}"
+        )
     raise RuntimeError(f"fetch failed: {url}: {last_err}")
 
 

@@ -36,7 +36,7 @@ BEIJING = timezone(timedelta(hours=8))
 FEED_FILE = os.environ.get("FEED_ITEMS_FILE", "feed_items.json")
 OUT_EPUB = "kindle.epub"
 
-BOOK_TITLE_BASE = "保险行业聚合"
+BOOK_TITLE_BASE = "AI推送"
 BOOK_AUTHOR = "和讯保险 + 公众号"
 BOOK_LANG = "zh-CN"
 
@@ -187,7 +187,8 @@ def build_opf(items, book_id, book_title):
 
 def build_epub(items, out_path):
     now_bj = datetime.now(BEIJING)
-    book_title = f"{BOOK_TITLE_BASE} · {now_bj.strftime('%Y-%m-%d')}"
+    # 书名带日期 + 时分（精确到分钟，避免一天两推产生同名导致 Kindle 端去重）
+    book_title = f"{BOOK_TITLE_BASE} · {now_bj.strftime('%Y-%m-%d %H:%M')}"
     book_id = f"urn:uuid:{uuid.uuid4()}"
 
     with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as z:

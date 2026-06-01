@@ -765,6 +765,7 @@ def main():
                 "url": url,
                 "title": actual_title or title,
                 "source": source or "",
+                "hexun_channel": channel or "",  # 和讯文章的频道名，RSS 为空
                 "pubdate_iso": result["art_dt"].isoformat(),
                 "content_html": result.get("rss_content") or "",
             })

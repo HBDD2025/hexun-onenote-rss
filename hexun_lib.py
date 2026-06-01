@@ -2,6 +2,7 @@
 """和讯保险·行业资讯抓取与解析（精简版，供 daily_push 使用）"""
 
 import gzip
+import os
 import random
 import re
 import sys
@@ -51,6 +52,37 @@ def _load_jintian_cookie():
 JINTIAN_COOKIE = _load_jintian_cookie()
 
 
+# ---------- 代理（仅针对 hexun.com，绕开腾讯 EdgeOne 对 GH Actions IP 的拦截）----------
+# 仅当 HEXUN_PROXY_URL 设置时启用；格式 http(s)://[user:pass@]host:port
+# 不影响 OneNote / WeChat / jintiankansha 等其他域名
+HEXUN_PROXY_URL = os.environ.get("HEXUN_PROXY_URL", "").strip()
+_PROXY_LOGGED_ONCE = False
+
+
+def _should_proxy(url):
+    return bool(HEXUN_PROXY_URL) and "hexun.com" in url
+
+
+def _open(req, url, timeout):
+    """统一开 request；hexun.com 走代理，其他直连。"""
+    global _PROXY_LOGGED_ONCE
+    if _should_proxy(url):
+        # 用一次性 opener 防止全局 install_opener 污染 jintiankansha 等其他调用
+        opener = urllib.request.build_opener(
+            urllib.request.ProxyHandler({
+                "http": HEXUN_PROXY_URL,
+                "https": HEXUN_PROXY_URL,
+            })
+        )
+        if not _PROXY_LOGGED_ONCE:
+            # 把 user:pass 部分打码，只把 host 留给日志
+            safe = re.sub(r"://([^@/]+)@", "://***@", HEXUN_PROXY_URL)
+            print(f"hexun_lib: 启用代理 {safe} → {url[:60]}", file=sys.stderr, flush=True)
+            _PROXY_LOGGED_ONCE = True
+        return opener.open(req, timeout=timeout)
+    return urllib.request.urlopen(req, timeout=timeout)
+
+
 def _new_request(url, cookies=None, referer=None):
     req = urllib.request.Request(url)
     req.add_header("User-Agent", random.choice(UA_LIST))
@@ -93,7 +125,7 @@ def fetch(url, referer=None):
     for attempt in range(RETRIES):
         try:
             req = _new_request(url, cookies=cookies, referer=referer)
-            with urllib.request.urlopen(req, timeout=20) as r:
+            with _open(req, url, timeout=20) as r:
                 raw = r.read()
                 if r.headers.get("Content-Encoding") == "gzip":
                     raw = gzip.decompress(raw)
@@ -139,7 +171,7 @@ def fetch_binary(url, referer=None):
     for attempt in range(IMG_RETRIES + 1):
         try:
             req = _new_request(url, cookies=cookies, referer=referer)
-            with urllib.request.urlopen(req, timeout=IMG_TIMEOUT) as r:
+            with _open(req, url, timeout=IMG_TIMEOUT) as r:
                 raw = r.read()
                 ctype = r.headers.get("Content-Type", "application/octet-stream").split(";")[0].strip()
                 if (len(raw) < 3000 and b"__tst_status" in raw

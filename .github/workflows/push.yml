@@ -33,6 +33,9 @@ jobs:
           MS_REFRESH_TOKEN: ${{ secrets.MS_REFRESH_TOKEN }}
           ONENOTE_SECTION_ID: ${{ secrets.ONENOTE_SECTION_ID }}
           JINTIANKANSHA_COOKIE: ${{ secrets.JINTIANKANSHA_COOKIE }}
+          # 仅对 hexun.com 生效；格式 http(s)://[user:pass@]host:port
+          # 留空 = 直连（GH 上目前直连被腾讯 EdgeOne 拦，必须配此项）
+          HEXUN_PROXY_URL: ${{ secrets.HEXUN_PROXY_URL }}
           STATE_FILE: state.json
         run: python daily_push.py
 

@@ -381,7 +381,7 @@ def _find_huibao_promo_paragraphs(xhtml):
     """yield 短促销段 <p>...</p> 的 match。判定：纯文本 ≤40 字 + 命中关键字组合。"""
     for m in re.finditer(r'<p[^>]*>(.*?)</p>', xhtml, re.S):
         inner_text = re.sub(r'<[^>]+>', '', m.group(1))
-        inner_text = inner_text.replace('&nbsp;', '').replace('\xa0', '')
+        inner_text = inner_text.replace('&#160;', '').replace('\xa0', '')
         inner_text = re.sub(r'\s+', '', inner_text)
         if len(inner_text) == 0 or len(inner_text) > 40:
             continue
@@ -646,16 +646,16 @@ def push_one(access_token, section_id, dt, url, list_title, log,
     meta_block = (
         channel_line
         + f'<p><b>来源：</b>{onenote._x_escape(source or "")}'
-        f' &nbsp;|&nbsp; '
+        f' &#160;|&#160; '
         f'<a href="{onenote._x_escape(url)}">原文链接</a></p>'
         f'<p><b>发布时间：</b>{onenote._x_escape(publish_str or "")}'
-        f' &nbsp;|&nbsp; '
+        f' &#160;|&#160; '
         f'<b>推送时间：</b>{push_time}（{trigger_label}）</p>'
         f'<hr />'
     )
 
     # OneNote：3 个空段做版面留白（避免长标题与正文重叠）+ meta + 正文
-    meta_header_onenote = '<p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p>' + meta_block
+    meta_header_onenote = '<p>&#160;</p><p>&#160;</p><p>&#160;</p>' + meta_block
     full_body = meta_header_onenote + xhtml
 
     # RSS：无需空段留白，直接 meta + 正文（图已替换成真实 URL）

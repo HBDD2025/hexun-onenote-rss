@@ -16,6 +16,7 @@ Amazon Send-to-Kindle 要求：
   2. EPUB 附件大小限制 50MB；我们大概 < 1MB，毫无压力
 """
 
+import html.entities
 import json
 import os
 import re
@@ -29,6 +30,23 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from xml.sax.saxutils import escape, quoteattr
+
+
+# EPUB 走的是严格 XHTML/XML，只认这 5 个命名实体；其他名字 (&nbsp; &middot; 等)
+# 都必须转成数字引用 &#NNN;，否则解析报 "Entity 'xxx' not defined"
+_XML_BUILTIN_ENTS = {"lt", "gt", "amp", "apos", "quot"}
+_NAMED_ENT_RX = re.compile(r"&([a-zA-Z][a-zA-Z0-9]{1,20});")
+
+
+def _named_entities_to_numeric(s):
+    """把 HTML 命名实体（&nbsp; &middot; &hellip; 等）转成 &#NNN; 数字形式。"""
+    def repl(m):
+        name = m.group(1)
+        if name in _XML_BUILTIN_ENTS:
+            return m.group(0)
+        cp = html.entities.name2codepoint.get(name)
+        return f"&#{cp};" if cp is not None else m.group(0)
+    return _NAMED_ENT_RX.sub(repl, s)
 
 
 BEIJING = timezone(timedelta(hours=8))
@@ -54,11 +72,13 @@ CONTAINER_XML = """<?xml version="1.0" encoding="UTF-8"?>
 
 def _clean_xhtml(html_str):
     """让 content_html 尽量符合 XHTML：
-    - 把 <br> / <hr> / <img ...> 等空标签补成自闭合
-    - 数字字符引用替换不需要做（HTMLParser 已转）
+    - <br> / <hr> / <img ...> 等空标签补成自闭合
+    - HTML 命名实体 (&nbsp; 等) 转成数字引用，避免 EPUB 严格 XML 解析报错
     """
     if not html_str:
         return ""
+    # 先做实体转换（EPUB XML parser 不识别 &nbsp;）
+    html_str = _named_entities_to_numeric(html_str)
     # <br>, <br /> 等都规范成 <br />
     html_str = re.sub(r"<br\s*/?>", "<br />", html_str, flags=re.I)
     html_str = re.sub(r"<hr\s*/?>", "<hr />", html_str, flags=re.I)

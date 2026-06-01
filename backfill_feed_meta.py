@@ -54,10 +54,10 @@ def build_meta_for(item, backfill_time_str):
     return (
         channel_line
         + f'<p><b>来源：</b>{_x(source)}'
-        f' &nbsp;|&nbsp; '
+        f' &#160;|&#160; '
         f'<a href="{_x(url)}">原文链接</a></p>'
         f'<p><b>发布时间：</b>{_x(publish_str)}'
-        f' &nbsp;|&nbsp; '
+        f' &#160;|&#160; '
         f'<b>推送时间：</b>{backfill_time_str}（回填）</p>'
         f'<hr />'
     )

@@ -11,6 +11,7 @@ GitHub Pages 发布，URL 形如：
 """
 
 import email.utils
+import html as _html
 import json
 import os
 import re
@@ -53,12 +54,14 @@ def _attr_escape(s):
                     .replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _plain_summary(html, limit=240):
+def _plain_summary(html_str, limit=240):
     """从 HTML 提取纯文本前 N 字作为 description（短摘要）。"""
-    if not html:
+    if not html_str:
         return ""
-    t = re.sub(r"<[^>]+>", "", html)
-    t = re.sub(r"&nbsp;|\xa0", " ", t)
+    t = re.sub(r"<[^>]+>", "", html_str)
+    # 把所有 HTML / XML 实体解码成真字符 (&#160; → '\xa0', &amp; → '&', 等)
+    t = _html.unescape(t)
+    # \xa0 / 多空白压成单个空格
     t = re.sub(r"\s+", " ", t).strip()
     if len(t) > limit:
         t = t[:limit].rstrip() + "…"

@@ -63,10 +63,9 @@ jobs:
             echo "feed_items.json 不存在，跳过 RSS 生成（首跑或全失败时正常）"
           fi
 
-      - name: Build EPUB + (morning/evening) Send to Kindle
-        # 每次 cron 都跑：生成 EPUB → 复制到 docs/ 让 GitHub Pages 公开下载。
-        # SEND_EMAIL=1 仅在早晨 (7 0 * * *) / 晚间 (7 11 * * *) cron 和手动触发；
-        # 中午 (3 4 * * *) cron 只更新 docs/kindle-latest.epub，不发邮件。
+      - name: Build EPUB + Send to Kindle
+        # 每次 cron 都跑：生成 EPUB → 复制到 docs/ 让 GitHub Pages 公开下载 → 发邮件。
+        # 早 08:07 / 中 12:03 / 晚 19:07 三班都发；手动触发也发。
         if: always()
         env:
           KINDLE_EMAIL: ${{ secrets.KINDLE_EMAIL }}
@@ -74,7 +73,7 @@ jobs:
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          SEND_EMAIL: ${{ (github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && (github.event.schedule == '7 0 * * *' || github.event.schedule == '7 11 * * *'))) && '1' || '0' }}
+          SEND_EMAIL: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '1' || '0' }}
         run: python send_to_kindle.py
 
       - name: Commit state + feed if changed

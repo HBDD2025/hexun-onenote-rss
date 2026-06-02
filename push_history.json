@@ -1,6 +1,15 @@
 {
   "pushes": [
     {
+      "push_time_iso": "2026-06-02T16:46:59.677429+08:00",
+      "trigger": "定时",
+      "items_count": 2,
+      "urls": [
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747057&idx=1&sn=ad498ebc162d3bcacf602ad944b43787&chksm=fd15eb812e493365ac72b59e67841e52bb1966f351b998d1b883254bdb81c654758a827abf81&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747057&idx=2&sn=015808fe44a6cbb4bfb0d99a403b177c&chksm=fdffe42997104aebee7d9115df0ed4ac21c0145b8bc2d446f8250fdce561295a5760ad199ef1&scene=0#rd"
+      ]
+    },
+    {
       "push_time_iso": "2026-06-02T12:00:00+08:00",
       "trigger": "回填",
       "items_count": 30,

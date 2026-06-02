@@ -22,6 +22,7 @@ from datetime import datetime, timezone, timedelta
 BEIJING = timezone(timedelta(hours=8))
 
 FEED_FILE = os.environ.get("FEED_ITEMS_FILE", "feed_items.json")
+PUSH_HISTORY_FILE = os.environ.get("PUSH_HISTORY_FILE", "push_history.json")
 OUT_DIR = "docs"
 OUT_FEED = os.path.join(OUT_DIR, "feed.xml")
 OUT_INDEX = os.path.join(OUT_DIR, "index.html")
@@ -117,33 +118,68 @@ def build_rss(items):
     return "\n".join(parts)
 
 
-def build_digest(items, epub_mtime_iso):
-    """单条目 RSS：把所有 items 拼成一个 <content:encoded>，作为一条
-    "AI推送 · YYYY-MM-DD HH:MM" 的 RSS item。每次 EPUB 更新（mtime 变）
-    guid 变，KOReader NewsDownloader 触发下载 → 一次同步只生成 1 本 EPUB。"""
-    push_dt = datetime.fromisoformat(epub_mtime_iso)
-    push_label = push_dt.strftime("%Y-%m-%d %H:%M")
-    push_compact = push_dt.strftime("%Y%m%dT%H%M%S")
-    title = f"AI推送 · {push_label}"
-    guid = f"tag:hbdd2025.github.io,hexun-onenote-rss:digest-{push_compact}"
+def _render_chapter(it):
+    """单条新闻渲染：大标题 + 来源行 + 完整 HTML 内容（已含 meta 块）+ hr 分隔。"""
+    ttl = _x_escape(it.get("title", "(无标题)"))
+    src = _x_escape(it.get("source", ""))
+    dt_short = _x_escape((it.get("pubdate_iso", "") or "")[:10])
+    return (
+        f'<h2>{ttl}</h2>\n'
+        f'<p style="color:#666;font-size:0.9em;">[{src}] {dt_short}</p>\n'
+        + (it.get("content_html") or "")
+        + '\n<hr />'
+    )
 
-    # 拼正文：每条新闻一个章节，章首加大标题
-    chapter_parts = []
-    for it in items:
-        ttl = _x_escape(it.get("title", "(无标题)"))
-        src = _x_escape(it.get("source", ""))
-        dt_short = _x_escape((it.get("pubdate_iso", "") or "")[:10])
-        chapter_parts.append(
-            f'<h2>{ttl}</h2>\n'
-            f'<p style="color:#666;font-size:0.9em;">[{src}] {dt_short}</p>\n'
-            + (it.get("content_html") or "")
-            + '\n<hr />'
-        )
-    full_html = "\n".join(chapter_parts)
-    safe_full = full_html.replace("]]>", "]]&gt;")
 
-    summary = f"本期合订本含 {len(items)} 条新闻（推送时间 {push_label}）。"
+def build_digest(pushes, items_by_url):
+    """增量模式：每次班次 = 一个 RSS entry，内容只含那次新推的 items。
+    pushes 是 push_history.json 里的列表（按时间倒序）；
+    items_by_url 是 feed_items 按 url 索引的字典。"""
+    entries = []
+    most_recent_dt_iso = None
 
+    for push in pushes:
+        push_time_iso = push.get("push_time_iso", "")
+        if not most_recent_dt_iso:
+            most_recent_dt_iso = push_time_iso
+        try:
+            push_dt = datetime.fromisoformat(push_time_iso)
+        except Exception:
+            continue
+        push_label = push_dt.strftime("%Y-%m-%d %H:%M")
+        push_compact = push_dt.strftime("%Y%m%dT%H%M%S")
+        trigger = push.get("trigger", "")
+        urls = push.get("urls", []) or []
+
+        # 解析这次班次的 items：URL 仍在 feed_items 里的才有内容
+        # (旧 push 的 url 可能因 100 条上限被挤出 feed_items)
+        run_items = []
+        for u in urls:
+            it = items_by_url.get(u)
+            if it:
+                run_items.append(it)
+        if not run_items:
+            continue  # 本班次内容已被淘汰，跳过这个 entry
+
+        title = f"AI推送 · {push_label}（{trigger}, {len(run_items)}条）"
+        guid = f"tag:hbdd2025.github.io,hexun-onenote-rss:digest-{push_compact}"
+
+        chapter_parts = [_render_chapter(it) for it in run_items]
+        full_html = "\n".join(chapter_parts)
+        safe_full = full_html.replace("]]>", "]]&gt;")
+        summary = f"本班次新增 {len(run_items)} 条（{trigger}推送 {push_label}）。"
+
+        entries.append(f"""  <item>
+    <title>{_x_escape(title)}</title>
+    <link>{_attr_escape(DIGEST_LINK + EPUB_FILENAME)}</link>
+    <guid isPermaLink="false">{_x_escape(guid)}</guid>
+    <pubDate>{_rfc822(push_time_iso)}</pubDate>
+    <dc:creator>{_x_escape(BOOK_AUTHOR)}</dc:creator>
+    <description>{_x_escape(summary)}</description>
+    <content:encoded><![CDATA[{safe_full}]]></content:encoded>
+  </item>""")
+
+    last_build = most_recent_dt_iso or datetime.now(BEIJING).isoformat()
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"
      xmlns:content="http://purl.org/rss/1.0/modules/content/"
@@ -152,19 +188,11 @@ def build_digest(items, epub_mtime_iso):
 <channel>
   <title>{_x_escape(DIGEST_CHANNEL_TITLE)}</title>
   <link>{_x_escape(DIGEST_LINK)}</link>
-  <description>每次推送一个合订本 entry，包含当时所有最新新闻。KOReader NewsDownloader 一次同步 = 一本 EPUB。</description>
+  <description>增量模式：每次班次推送 = 一条 entry，只含本班次新增的新闻。KOReader 一次同步 = N 本小 EPUB（N = 班次数 × 新条目数）。</description>
   <language>zh-CN</language>
-  <lastBuildDate>{_rfc822(epub_mtime_iso)}</lastBuildDate>
+  <lastBuildDate>{_rfc822(last_build)}</lastBuildDate>
   <atom:link href="{_attr_escape(DIGEST_LINK + 'digest.xml')}" rel="self" type="application/rss+xml" />
-  <item>
-    <title>{_x_escape(title)}</title>
-    <link>{_attr_escape(DIGEST_LINK + EPUB_FILENAME)}</link>
-    <guid isPermaLink="false">{_x_escape(guid)}</guid>
-    <pubDate>{_rfc822(epub_mtime_iso)}</pubDate>
-    <dc:creator>{_x_escape(BOOK_AUTHOR)}</dc:creator>
-    <description>{_x_escape(summary)}</description>
-    <content:encoded><![CDATA[{safe_full}]]></content:encoded>
-  </item>
+{chr(10).join(entries)}
 </channel>
 </rss>
 """
@@ -302,10 +330,19 @@ def main():
             f.write(opds)
         print(f"wrote {OUT_OPDS} (pointing to {EPUB_FILENAME}, {epub_size} B)")
 
-        digest = build_digest(items, epub_mtime_iso)
-        with open(OUT_DIGEST, "w", encoding="utf-8") as f:
-            f.write(digest)
-        print(f"wrote {OUT_DIGEST} (single-entry digest of {len(items)} items)")
+        # digest.xml 走增量模式：读 push_history.json，每班次一条 entry
+        if os.path.exists(PUSH_HISTORY_FILE):
+            with open(PUSH_HISTORY_FILE, "r", encoding="utf-8") as f:
+                ph = json.load(f)
+            pushes = ph.get("pushes", [])
+            items_by_url = {it["url"]: it for it in items if it.get("url")}
+            digest = build_digest(pushes, items_by_url)
+            with open(OUT_DIGEST, "w", encoding="utf-8") as f:
+                f.write(digest)
+            n_entries = digest.count("<item>")
+            print(f"wrote {OUT_DIGEST} ({n_entries} push entries 增量模式)")
+        else:
+            print(f"skip {OUT_DIGEST}（{PUSH_HISTORY_FILE} 不存在，等下次推送累积）")
     else:
         print(f"skip {OUT_OPDS} / {OUT_DIGEST}（{epub_path} 不存在）")
 

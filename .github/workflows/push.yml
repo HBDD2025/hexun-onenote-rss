@@ -79,13 +79,13 @@ jobs:
       - name: Commit state + feed if changed
         if: always()    # 失败时也回写（中途已推送的部分要记录）
         run: |
-          # 一次性跟踪 state.json、feed_items.json、docs/ 是否有变化
-          CHANGES=$(git status --porcelain state.json feed_items.json docs/ 2>/dev/null)
+          # 一次性跟踪 state.json、feed_items.json、push_history.json、docs/ 是否有变化
+          CHANGES=$(git status --porcelain state.json feed_items.json push_history.json docs/ 2>/dev/null)
           if [[ -n "$CHANGES" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             # 显式 add 我们要的几个路径，避免误 add 别的临时文件
-            git add state.json feed_items.json docs/ 2>/dev/null || true
+            git add state.json feed_items.json push_history.json docs/ 2>/dev/null || true
             git commit -m "chore: update state + feed [skip ci]"
             # 重试 push：可能远端在 daily_push 跑期间被人 push 过新 commit，要 rebase 再推
             for i in 1 2 3 4 5; do

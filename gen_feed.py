@@ -25,6 +25,8 @@ FEED_FILE = os.environ.get("FEED_ITEMS_FILE", "feed_items.json")
 OUT_DIR = "docs"
 OUT_FEED = os.path.join(OUT_DIR, "feed.xml")
 OUT_INDEX = os.path.join(OUT_DIR, "index.html")
+OUT_OPDS = os.path.join(OUT_DIR, "opds.xml")
+EPUB_FILENAME = "kindle-latest.epub"
 
 # Channel meta
 CHANNEL_TITLE = "保险行业聚合（和讯 + 公众号）"
@@ -111,6 +113,45 @@ def build_rss(items):
     return "\n".join(parts)
 
 
+def build_opds(items, epub_filename, epub_mtime_iso, epub_size):
+    """OPDS Atom catalog：让 KOReader 等 OPDS 客户端能"一键下载合订本 EPUB"。
+
+    单条目 — 指向 kindle-latest.epub。href 用相对路径，
+    OPDS 客户端会基于 catalog URL 解析（jsDelivr 或 GitHub Pages 都能用）。"""
+    summary_text = (
+        f"包含最近 {len(items)} 条新闻（和讯保险 5 个栏目 + 14 个公众号 RSS 聚合）。"
+        f"自动更新；每次拉到的是最新合订本。"
+    )
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:opds="http://opds-spec.org/2010/catalog"
+      xmlns:dc="http://purl.org/dc/terms/">
+  <id>tag:hbdd2025.github.io,hexun-onenote-rss:opds</id>
+  <title>{_x_escape(CHANNEL_TITLE)}</title>
+  <updated>{epub_mtime_iso}</updated>
+  <author><name>{_x_escape(BOOK_AUTHOR)}</name></author>
+  <link rel="self" type="application/atom+xml;profile=opds-catalog;kind=acquisition" href="opds.xml"/>
+  <link rel="start" type="application/atom+xml;profile=opds-catalog;kind=acquisition" href="opds.xml"/>
+  <entry>
+    <id>tag:hbdd2025.github.io,hexun-onenote-rss:latest</id>
+    <title>AI推送（最新合订本）</title>
+    <updated>{epub_mtime_iso}</updated>
+    <author><name>{_x_escape(BOOK_AUTHOR)}</name></author>
+    <dc:language>zh-CN</dc:language>
+    <dc:issued>{epub_mtime_iso[:10]}</dc:issued>
+    <summary>{_x_escape(summary_text)}</summary>
+    <link rel="http://opds-spec.org/acquisition"
+          href="{_attr_escape(epub_filename)}"
+          type="application/epub+zip"
+          length="{epub_size}"/>
+  </entry>
+</feed>
+"""
+
+
+BOOK_AUTHOR = "和讯保险 + 公众号"
+
+
 def build_index_html(items):
     """简易落地页：列出最近 50 条，链接到原文。"""
     rows = []
@@ -145,6 +186,9 @@ def build_index_html(items):
   .epub-link {{ display: inline-block; background:#2c7;color:#fff;
                 padding:4px 10px; border-radius:4px; text-decoration:none;
                 font-size:0.9em; margin-right:8px; }}
+  .opds-link {{ display: inline-block; background:#48a;color:#fff;
+                padding:4px 10px; border-radius:4px; text-decoration:none;
+                font-size:0.9em; margin-right:8px; }}
   ul.items {{ list-style: none; padding: 0; }}
   ul.items li {{ padding: 6px 0; border-bottom: 1px solid #eee; }}
   ul.items .d {{ color:#999; font-family: monospace; font-size:0.85em;
@@ -159,6 +203,7 @@ def build_index_html(items):
 <p class="sub">
   <a class="rss-link" href="feed.xml">📡 订阅 RSS</a>
   <a class="epub-link" href="kindle-latest.epub">📖 下载 EPUB</a>
+  <a class="opds-link" href="opds.xml">📚 OPDS（KOReader 用）</a>
   共 {len(items)} 条 · 最近更新 {_x_escape((items[0].get("pubdate_iso","")[:16]) if items else "")}
 </p>
 <ul class="items">
@@ -183,6 +228,18 @@ def main():
         f.write(html)
     print(f"wrote {OUT_FEED} ({len(items)} items, {os.path.getsize(OUT_FEED)} B)")
     print(f"wrote {OUT_INDEX}")
+
+    # OPDS catalog（需要 kindle-latest.epub 存在才有意义；不存在则跳过）
+    epub_path = os.path.join(OUT_DIR, EPUB_FILENAME)
+    if os.path.exists(epub_path):
+        epub_mtime = datetime.fromtimestamp(os.path.getmtime(epub_path), tz=BEIJING)
+        epub_size = os.path.getsize(epub_path)
+        opds = build_opds(items, EPUB_FILENAME, epub_mtime.isoformat(), epub_size)
+        with open(OUT_OPDS, "w", encoding="utf-8") as f:
+            f.write(opds)
+        print(f"wrote {OUT_OPDS} (pointing to {EPUB_FILENAME}, {epub_size} B)")
+    else:
+        print(f"skip {OUT_OPDS}（{epub_path} 不存在）")
 
 
 if __name__ == "__main__":

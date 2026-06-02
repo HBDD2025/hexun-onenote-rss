@@ -139,6 +139,9 @@ def build_index_html(items):
   .rss-link {{ display: inline-block; background:#ff8800; color:#fff;
                padding:4px 10px; border-radius:4px; text-decoration:none;
                font-size:0.9em; margin-right:8px; }}
+  .epub-link {{ display: inline-block; background:#2c7;color:#fff;
+                padding:4px 10px; border-radius:4px; text-decoration:none;
+                font-size:0.9em; margin-right:8px; }}
   ul.items {{ list-style: none; padding: 0; }}
   ul.items li {{ padding: 6px 0; border-bottom: 1px solid #eee; }}
   ul.items .d {{ color:#999; font-family: monospace; font-size:0.85em;
@@ -152,6 +155,7 @@ def build_index_html(items):
 <h1>{_x_escape(CHANNEL_TITLE)}</h1>
 <p class="sub">
   <a class="rss-link" href="feed.xml">📡 订阅 RSS</a>
+  <a class="epub-link" href="kindle-latest.epub">📖 下载 EPUB</a>
   共 {len(items)} 条 · 最近更新 {_x_escape((items[0].get("pubdate_iso","")[:16]) if items else "")}
 </p>
 <ul class="items">

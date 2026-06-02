@@ -20,6 +20,7 @@ import html.entities
 import json
 import os
 import re
+import shutil
 import smtplib
 import ssl
 import sys
@@ -53,6 +54,9 @@ BEIJING = timezone(timedelta(hours=8))
 
 FEED_FILE = os.environ.get("FEED_ITEMS_FILE", "feed_items.json")
 OUT_EPUB = "kindle.epub"
+# 也复制一份到 docs/ 让 GitHub Pages 公开下载，绕开 Amazon 的 Send-to-Kindle
+# 每次 verify 邮件限制（Paperwhite 自带浏览器或 iOS Send-to-Kindle App 可直接拉）
+DOCS_EPUB = os.path.join("docs", "kindle-latest.epub")
 
 BOOK_TITLE_BASE = "AI推送"
 BOOK_AUTHOR = "和讯保险 + 公众号"
@@ -260,11 +264,39 @@ def send_via_smtp(to_addr, subject, epub_path, smtp_host, smtp_port,
 # ---------- 入口 ----------
 
 def main():
-    kindle_email = os.environ.get("KINDLE_EMAIL", "").strip()
-    if not kindle_email:
-        print("KINDLE_EMAIL 未配置，跳过 Kindle 推送", flush=True)
+    # === 1. 读 feed ===
+    if not os.path.exists(FEED_FILE):
+        print(f"!! {FEED_FILE} 不存在，跳过", file=sys.stderr)
+        return 0
+    with open(FEED_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    items = data.get("items", [])
+    if not items:
+        print("feed_items.json 为空，跳过")
         return 0
 
+    # === 2. 生成 EPUB（无条件） ===
+    book_title = build_epub(items, OUT_EPUB)
+    size_kb = os.path.getsize(OUT_EPUB) / 1024
+    print(f"✓ 生成 {OUT_EPUB} ({len(items)} 章节, {size_kb:.1f} KB)", flush=True)
+
+    # === 3. 复制到 docs/ 让 GitHub Pages 公开下载（无条件） ===
+    # 这条路绕开 Amazon Send-to-Kindle 验证，Paperwhite 自带浏览器或
+    # iOS Send-to-Kindle App 可直接拉
+    os.makedirs(os.path.dirname(DOCS_EPUB), exist_ok=True)
+    shutil.copy(OUT_EPUB, DOCS_EPUB)
+    print(f"✓ EPUB 已发布到 {DOCS_EPUB}（公网 URL: /kindle-latest.epub）", flush=True)
+
+    # === 4. SMTP 发邮件到 Kindle（仅当 SEND_EMAIL=1 且配齐 SMTP 时） ===
+    send_email = os.environ.get("SEND_EMAIL", "").strip().lower() in ("1", "true", "yes")
+    if not send_email:
+        print("SEND_EMAIL 未启用（中午 cron 默认关），仅生成 EPUB + 发布 Pages")
+        return 0
+
+    kindle_email = os.environ.get("KINDLE_EMAIL", "").strip()
+    if not kindle_email:
+        print("KINDLE_EMAIL 未配置，跳过邮件推送（EPUB 仍在 Pages 上）")
+        return 0
     for v in ("SMTP_HOST", "SMTP_USER", "SMTP_PASS"):
         if not os.environ.get(v):
             print(f"!! {v} 未配置，无法发邮件", file=sys.stderr)
@@ -273,21 +305,6 @@ def main():
     smtp_port = int(os.environ.get("SMTP_PORT", "465"))
     smtp_user = os.environ["SMTP_USER"].strip()
     smtp_pass = os.environ["SMTP_PASS"]
-
-    if not os.path.exists(FEED_FILE):
-        print(f"!! {FEED_FILE} 不存在，跳过 Kindle 推送", file=sys.stderr)
-        return 0
-
-    with open(FEED_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    items = data.get("items", [])
-    if not items:
-        print("feed_items.json 为空，跳过 Kindle 推送")
-        return 0
-
-    book_title = build_epub(items, OUT_EPUB)
-    size_kb = os.path.getsize(OUT_EPUB) / 1024
-    print(f"✓ 生成 {OUT_EPUB} ({len(items)} 章节, {size_kb:.1f} KB)", flush=True)
 
     send_via_smtp(
         to_addr=kindle_email,

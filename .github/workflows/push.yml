@@ -63,26 +63,19 @@ jobs:
             echo "feed_items.json 不存在，跳过 RSS 生成（首跑或全失败时正常）"
           fi
 
-      - name: Send to Kindle (morning + evening / manual)
-        # 早晨 7 0 * * * (UTC 00:07 = 北京 08:07) 和晚间 7 11 * * * (UTC 11:07 = 北京 19:07)
-        # 各推一次；中午 12:03 那一次跳过，避免一天三次刷屏。手动跑也推。
-        if: |
-          (github.event_name == 'schedule'
-           && (github.event.schedule == '7 0 * * *'
-               || github.event.schedule == '7 11 * * *'))
-          || github.event_name == 'workflow_dispatch'
+      - name: Build EPUB + (morning/evening) Send to Kindle
+        # 每次 cron 都跑：生成 EPUB → 复制到 docs/ 让 GitHub Pages 公开下载。
+        # SEND_EMAIL=1 仅在早晨 (7 0 * * *) / 晚间 (7 11 * * *) cron 和手动触发；
+        # 中午 (3 4 * * *) cron 只更新 docs/kindle-latest.epub，不发邮件。
+        if: always()
         env:
           KINDLE_EMAIL: ${{ secrets.KINDLE_EMAIL }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
-        run: |
-          if [ -z "$KINDLE_EMAIL" ]; then
-            echo "KINDLE_EMAIL 未配置，跳过 Kindle 推送（要启用请在 GH Secrets 加 KINDLE_EMAIL + SMTP_*）"
-            exit 0
-          fi
-          python send_to_kindle.py
+          SEND_EMAIL: ${{ (github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && (github.event.schedule == '7 0 * * *' || github.event.schedule == '7 11 * * *'))) && '1' || '0' }}
+        run: python send_to_kindle.py
 
       - name: Commit state + feed if changed
         if: always()    # 失败时也回写（中途已推送的部分要记录）

@@ -26,7 +26,11 @@ OUT_DIR = "docs"
 OUT_FEED = os.path.join(OUT_DIR, "feed.xml")
 OUT_INDEX = os.path.join(OUT_DIR, "index.html")
 OUT_OPDS = os.path.join(OUT_DIR, "opds.xml")
+OUT_DIGEST = os.path.join(OUT_DIR, "digest.xml")
 EPUB_FILENAME = "kindle-latest.epub"
+
+DIGEST_CHANNEL_TITLE = "AI 推送（合订本）"
+DIGEST_LINK = "https://hbdd2025.github.io/hexun-onenote-rss/"
 
 # Channel meta
 CHANNEL_TITLE = "保险行业聚合（和讯 + 公众号）"
@@ -113,6 +117,59 @@ def build_rss(items):
     return "\n".join(parts)
 
 
+def build_digest(items, epub_mtime_iso):
+    """单条目 RSS：把所有 items 拼成一个 <content:encoded>，作为一条
+    "AI推送 · YYYY-MM-DD HH:MM" 的 RSS item。每次 EPUB 更新（mtime 变）
+    guid 变，KOReader NewsDownloader 触发下载 → 一次同步只生成 1 本 EPUB。"""
+    push_dt = datetime.fromisoformat(epub_mtime_iso)
+    push_label = push_dt.strftime("%Y-%m-%d %H:%M")
+    push_compact = push_dt.strftime("%Y%m%dT%H%M%S")
+    title = f"AI推送 · {push_label}"
+    guid = f"tag:hbdd2025.github.io,hexun-onenote-rss:digest-{push_compact}"
+
+    # 拼正文：每条新闻一个章节，章首加大标题
+    chapter_parts = []
+    for it in items:
+        ttl = _x_escape(it.get("title", "(无标题)"))
+        src = _x_escape(it.get("source", ""))
+        dt_short = _x_escape((it.get("pubdate_iso", "") or "")[:10])
+        chapter_parts.append(
+            f'<h2>{ttl}</h2>\n'
+            f'<p style="color:#666;font-size:0.9em;">[{src}] {dt_short}</p>\n'
+            + (it.get("content_html") or "")
+            + '\n<hr />'
+        )
+    full_html = "\n".join(chapter_parts)
+    safe_full = full_html.replace("]]>", "]]&gt;")
+
+    summary = f"本期合订本含 {len(items)} 条新闻（推送时间 {push_label}）。"
+
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
+     xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>{_x_escape(DIGEST_CHANNEL_TITLE)}</title>
+  <link>{_x_escape(DIGEST_LINK)}</link>
+  <description>每次推送一个合订本 entry，包含当时所有最新新闻。KOReader NewsDownloader 一次同步 = 一本 EPUB。</description>
+  <language>zh-CN</language>
+  <lastBuildDate>{_rfc822(epub_mtime_iso)}</lastBuildDate>
+  <atom:link href="{_attr_escape(DIGEST_LINK + 'digest.xml')}" rel="self" type="application/rss+xml" />
+  <item>
+    <title>{_x_escape(title)}</title>
+    <link>{_attr_escape(DIGEST_LINK + EPUB_FILENAME)}</link>
+    <guid isPermaLink="false">{_x_escape(guid)}</guid>
+    <pubDate>{_rfc822(epub_mtime_iso)}</pubDate>
+    <dc:creator>{_x_escape(BOOK_AUTHOR)}</dc:creator>
+    <description>{_x_escape(summary)}</description>
+    <content:encoded><![CDATA[{safe_full}]]></content:encoded>
+  </item>
+</channel>
+</rss>
+"""
+
+
 def build_opds(items, epub_filename, epub_mtime_iso, epub_size):
     """OPDS Atom catalog：让 KOReader 等 OPDS 客户端能"一键下载合订本 EPUB"。
 
@@ -189,6 +246,9 @@ def build_index_html(items):
   .opds-link {{ display: inline-block; background:#48a;color:#fff;
                 padding:4px 10px; border-radius:4px; text-decoration:none;
                 font-size:0.9em; margin-right:8px; }}
+  .digest-link {{ display: inline-block; background:#933;color:#fff;
+                  padding:4px 10px; border-radius:4px; text-decoration:none;
+                  font-size:0.9em; margin-right:8px; }}
   ul.items {{ list-style: none; padding: 0; }}
   ul.items li {{ padding: 6px 0; border-bottom: 1px solid #eee; }}
   ul.items .d {{ color:#999; font-family: monospace; font-size:0.85em;
@@ -201,7 +261,8 @@ def build_index_html(items):
 <body>
 <h1>{_x_escape(CHANNEL_TITLE)}</h1>
 <p class="sub">
-  <a class="rss-link" href="feed.xml">📡 订阅 RSS</a>
+  <a class="rss-link" href="feed.xml">📡 订阅 RSS（每条新闻一项）</a>
+  <a class="digest-link" href="digest.xml">📰 RSS 合订本（一次推送一项）</a>
   <a class="epub-link" href="kindle-latest.epub">📖 下载 EPUB</a>
   <a class="opds-link" href="opds.xml">📚 OPDS（KOReader 用）</a>
   共 {len(items)} 条 · 最近更新 {_x_escape((items[0].get("pubdate_iso","")[:16]) if items else "")}
@@ -229,17 +290,24 @@ def main():
     print(f"wrote {OUT_FEED} ({len(items)} items, {os.path.getsize(OUT_FEED)} B)")
     print(f"wrote {OUT_INDEX}")
 
-    # OPDS catalog（需要 kindle-latest.epub 存在才有意义；不存在则跳过）
+    # OPDS catalog + digest.xml（都需要 kindle-latest.epub 存在；EPUB 的 mtime
+    # 作为本期推送时间，让 digest entry 的 guid 跟实际内容变化对齐）
     epub_path = os.path.join(OUT_DIR, EPUB_FILENAME)
     if os.path.exists(epub_path):
         epub_mtime = datetime.fromtimestamp(os.path.getmtime(epub_path), tz=BEIJING)
+        epub_mtime_iso = epub_mtime.isoformat()
         epub_size = os.path.getsize(epub_path)
-        opds = build_opds(items, EPUB_FILENAME, epub_mtime.isoformat(), epub_size)
+        opds = build_opds(items, EPUB_FILENAME, epub_mtime_iso, epub_size)
         with open(OUT_OPDS, "w", encoding="utf-8") as f:
             f.write(opds)
         print(f"wrote {OUT_OPDS} (pointing to {EPUB_FILENAME}, {epub_size} B)")
+
+        digest = build_digest(items, epub_mtime_iso)
+        with open(OUT_DIGEST, "w", encoding="utf-8") as f:
+            f.write(digest)
+        print(f"wrote {OUT_DIGEST} (single-entry digest of {len(items)} items)")
     else:
-        print(f"skip {OUT_OPDS}（{epub_path} 不存在）")
+        print(f"skip {OUT_OPDS} / {OUT_DIGEST}（{epub_path} 不存在）")
 
 
 if __name__ == "__main__":

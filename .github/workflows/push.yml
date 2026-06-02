@@ -84,8 +84,21 @@ jobs:
           if [[ -n "$CHANGES" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            # 显式 add 我们要的几个路径，避免误 add 别的临时文件
-            git add state.json feed_items.json push_history.json docs/ 2>/dev/null || true
+            # 逐个 add：避免任何一个 pathspec 不匹配时整个 add 失败
+            # （git add a b c：若 b 不存在则 a/c 也不被暂存 + 非零退出）
+            for f in state.json feed_items.json push_history.json; do
+              [ -e "$f" ] && git add "$f"
+            done
+            [ -d docs ] && git add docs/
+            # 看一眼真的暂存了什么，方便日志排查
+            echo "--- staged ---"
+            git diff --cached --stat
+            echo "--------------"
+            # 如果实际没暂存到任何东西就跳过 commit，不要让 step 红
+            if git diff --cached --quiet; then
+              echo "git add 后实际没暂存任何变化（可能是 .gitignore 全部排除），跳过 commit"
+              exit 0
+            fi
             git commit -m "chore: update state + feed [skip ci]"
             # 重试 push：可能远端在 daily_push 跑期间被人 push 过新 commit，要 rebase 再推
             for i in 1 2 3 4 5; do

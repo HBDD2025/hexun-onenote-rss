@@ -1,6 +1,24 @@
 {
   "pushes": [
     {
+      "push_time_iso": "2026-06-04T12:59:48.807726+08:00",
+      "trigger": "定时",
+      "items_count": 11,
+      "urls": [
+        "https://insurance.hexun.com/2026-06-04/224270147.html",
+        "https://insurance.hexun.com/2026-06-04/224270079.html",
+        "https://insurance.hexun.com/2026-06-04/224269988.html",
+        "https://insurance.hexun.com/2026-06-04/224269986.html",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747469&idx=1&sn=63745eb40055ff7f65c72c3c587ec3a0&chksm=fd33bbccd39c6c7e6f8cb8c870b863445e6b2947705f50a023a5f6cea107bb34c660a5d24370&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747469&idx=2&sn=147f415f09cb3c676660fce9884a4620&chksm=fd204a7c3db2a6872cdb44c91b7e5f762491ed844be2c4b5934eac49d27dc5ce1ded8670dd9c&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747468&idx=1&sn=62a2737b560d975644708b8ebbd3154d&chksm=fd53c87effbd623d87c3ca46896496e31fa0b61701ad8f8136b409e5244526bdcd5a3f6f8ff5&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747468&idx=2&sn=3804006f6ad66e9cf9d584fbf080f192&chksm=fd26533a9ca60fb7631f1d06ac048b244479b007c0a4066adbe3c46374aa22d6563cad77a505&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747348&idx=1&sn=01065c56dc65bfb439beedf1bb84e29c&chksm=fd266095cbcf6f5623f7eeabab588977a29a2b05a8592d63eb80a2d1d566e460e1847414c17d&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzA4NzY1NjAxNQ==&mid=2650505726&idx=3&sn=1bdfd86e0ee3b839833cab8438e9a04a&chksm=89982d6216dc58f6978464d8d17f5907a413113c1afaa0992b1842f803112448963c5752bfba&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzA4NzY1NjAxNQ==&mid=2650505726&idx=2&sn=b5350548dab8b8af9fc158444d0683c8&chksm=8947898ca125f6197a22ce3a957b014961c309aa03cc52443488b1d3cce24f24191f9b6ddaa5&scene=0#rd"
+      ]
+    },
+    {
       "push_time_iso": "2026-06-03T23:57:13.423237+08:00",
       "trigger": "定时",
       "items_count": 17,

@@ -1,6 +1,22 @@
 {
   "pushes": [
     {
+      "push_time_iso": "2026-06-04T22:14:56.282648+08:00",
+      "trigger": "定时",
+      "items_count": 9,
+      "urls": [
+        "https://insurance.hexun.com/2026-06-04/224274053.html",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747627&idx=1&sn=a8648dd8363e028dfcd49e6312a22899&chksm=fd49f00b47d80f727950fe1fa437d0256b101abc603d411c3844f6209c9266dd00459931cdd4&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747622&idx=1&sn=f627ed4a22eb071a31e3dfed097d3a66&chksm=fd3add4c9fb362adfd0e26bf5abbf2dd64c8641d33dc864482cef97a92c1e5f1cf3e37cfce97&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747607&idx=1&sn=5d1ea86cb021dc3156635e853fe512fe&chksm=fd2b052dfacc0197ce50a54e76d8c40b1fc6dd7048f3fdb73b9575933523c5d4c5a16e2a470d&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747607&idx=2&sn=8f26cd2be51c1c60111f936ac2634489&chksm=fdb8707a20c948718701bc18e0995c68a509c3c0de58025cb7f1a92fe2c67edeae26aa1c4fa2&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247584043&idx=3&sn=9ed65f7ccc596c941752238c2a112ae1&chksm=fb0a41930a90022e87f7b115168dbceb0f867ef69ebdff7554e0e6cf34618e391d21f0a92a33&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247584043&idx=1&sn=55fb577efa59c843b8ab615f01a00863&chksm=fbc983d58cdbaaba831fcc8eeab5f7fb49b3e96f80df8638f37cc1753c133efb0b156c1bc4f1&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247584043&idx=2&sn=64e3a8ffbd094de76019f87d759db784&chksm=fb2a5f5dd0ca9f93d92f030f5bd32fe159d3d7c5f860251935d384b20acf2ed07e222f2be852&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzIxMTc4MzY4Mg==&mid=2247513087&idx=1&sn=83b4a5c8dcb1fdb8420a02df771d7613&chksm=960a29b839d118118341876f3b28f784f064753778589edf5ae331ff57d03d39ece1aacd9a1b&scene=0#rd"
+      ]
+    },
+    {
       "push_time_iso": "2026-06-04T16:30:45.285861+08:00",
       "trigger": "定时",
       "items_count": 7,

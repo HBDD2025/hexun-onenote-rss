@@ -1,6 +1,18 @@
 {
   "pushes": [
     {
+      "push_time_iso": "2026-06-05T16:17:58.022533+08:00",
+      "trigger": "定时",
+      "items_count": 5,
+      "urls": [
+        "https://insurance.hexun.com/2026-06-05/224278761.html",
+        "https://insurance.hexun.com/2026-06-05/224278569.html",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747722&idx=1&sn=73ec28423f28a37dd062f2292ee0a385&chksm=fd75a9365f8747682865d78c9f9dcfd43cf2398b29496c2df16a8ff34f2a15adee9c20251dc7&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747706&idx=1&sn=1a0d32ed5203c35abbcc156889c4a85b&chksm=fda5ef1b178be147f1ea8b983e507016f88fd0f6bf9c37c99aad77ead0fb2c729b5381e008c4&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747698&idx=2&sn=5e7956b2b407c1795f666de050f13c51&chksm=fdc23b6e6dc6a539cdd2b5d1fbc8a2145a9f20258f05deb5c8af0e1f7acc089df025d4d1701f&scene=0#rd"
+      ]
+    },
+    {
       "push_time_iso": "2026-06-05T12:52:46.015764+08:00",
       "trigger": "定时",
       "items_count": 12,

@@ -1,6 +1,27 @@
 {
   "pushes": [
     {
+      "push_time_iso": "2026-06-06T12:28:46.980336+08:00",
+      "trigger": "定时",
+      "items_count": 14,
+      "urls": [
+        "https://insurance.hexun.com/2026-06-05/224282359.html",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747806&idx=1&sn=7a4384add0afefd9cdc8020c50b490b1&chksm=fde35b71024560d0a15590964c9be768ef6314fd606ef7093c13b67c6a282539d92781ad69ca&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247747805&idx=1&sn=0e9e8e426dcd71d8695e7c752f769d9a&chksm=fdcac5b7110f9cf4e9aab4e07dd3fb72229f65c3b7a50ab67164cc78ddd55673a7ca24d34ef6&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247553635&idx=1&sn=9b7bf2757ac8e7179e9c45e8dd0b580f&chksm=cfb8b1adf8cf38bb7e6994e445c271d42357b4babd56803ab9b31520eca0fb1c19297164adb7#rd",
+        "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247590867&idx=1&sn=9f1f5697d0bd0150e337efedbfbb7da9&chksm=cf7b765f514365721ff0792780427c8edb882f139c71fe88f9af8cbbe008f626034132f94772&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MjM5MDE2MjA2Nw==&mid=2650664542&idx=1&sn=00977a76a83eee93561044a7499f8ad6&chksm=be4043a28937cab4ed0b4740ce758b718c42e7073b2143aeaec9afc88ae2507fe7f94f4137b2#rd",
+        "http://mp.weixin.qq.com/s?__biz=MjM5MDE2MjA2Nw==&mid=2650664539&idx=1&sn=8d8e58c7b30fa5ab8556bb5b7c910fd8&chksm=be4043a78937cab162b9fa252b7450a11269fff11096e41170386196b562cbea0ec8b6ee68b5#rd",
+        "http://mp.weixin.qq.com/s?__biz=MjM5MDE2MjA2Nw==&mid=2650664527&idx=1&sn=453d93d6f426dd1a55cbeb7fcbe0c0e8&chksm=be4043b38937caa50188f5f3bd822677ff33b1038f3c12fc698d18dcf21bef1b4204c919bdac#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzA4NzY1NjAxNQ==&mid=2650505745&idx=1&sn=61f97f9c38caeb3efd03c412735f9064&chksm=89e45f2796dd9c7c2985b001d77bdb095e1688c029a247b85af0a1b01a7d977838a18580d226&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzA4NzY1NjAxNQ==&mid=2650505745&idx=2&sn=e2f16f1cb712b318048bce5bdaeaaad1&chksm=896b7b098e25d377b9905bcd2916fdc55befe41d96ec3791847c93ae9d51845f16d9d1c13c45&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247584125&idx=1&sn=0f452c2b70f9bcc26bf72ca8a84532be&chksm=fb13bd7957f50226c0bb2eb3747ff5afc008c8b8a61fdfa59b953496e959af5dd7767913ef7c&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247584065&idx=1&sn=a01ad41111bc2bbb1a9939be9ab6be0e&chksm=fb85e03027731bd88bbefacd998b9f111b1e1f2d1e53cfa42f29670b1dd8014194c2694d89ee&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247584065&idx=2&sn=a4de67b170df655c7c5c49954c80206a&chksm=fbc13bce56df2daf23520995e98fff0a2a717ccefe77e494c6cf82ca85ae80519f5580f46f5d&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzIxMTc4MzY4Mg==&mid=2247513098&idx=1&sn=0c547880b1301245be0519716670953e&chksm=962e31518d558803a520ddb1f24d33be29b99700c2df31744a6c149f512df964a130d9983397&scene=0#rd"
+      ]
+    },
+    {
       "push_time_iso": "2026-06-05T22:07:58.111422+08:00",
       "trigger": "定时",
       "items_count": 10,

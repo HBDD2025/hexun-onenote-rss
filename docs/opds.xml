@@ -4,14 +4,14 @@
       xmlns:dc="http://purl.org/dc/terms/">
   <id>tag:hbdd2025.github.io,hexun-onenote-rss:opds</id>
   <title>保险行业聚合（和讯 + 公众号）</title>
-  <updated>2026-06-16T13:23:57.635545+08:00</updated>
+  <updated>2026-06-16T17:32:30.761278+08:00</updated>
   <author><name>和讯保险 + 公众号</name></author>
   <link rel="self" type="application/atom+xml;profile=opds-catalog;kind=acquisition" href="opds.xml"/>
   <link rel="start" type="application/atom+xml;profile=opds-catalog;kind=acquisition" href="opds.xml"/>
   <entry>
     <id>tag:hbdd2025.github.io,hexun-onenote-rss:latest</id>
     <title>AI推送（最新合订本）</title>
-    <updated>2026-06-16T13:23:57.635545+08:00</updated>
+    <updated>2026-06-16T17:32:30.761278+08:00</updated>
     <author><name>和讯保险 + 公众号</name></author>
     <dc:language>zh-CN</dc:language>
     <dc:issued>2026-06-16</dc:issued>
@@ -19,6 +19,6 @@
     <link rel="http://opds-spec.org/acquisition"
           href="kindle-latest.epub"
           type="application/epub+zip"
-          length="450298"/>
+          length="456312"/>
   </entry>
 </feed>

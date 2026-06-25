@@ -1,6 +1,16 @@
 {
   "pushes": [
     {
+      "push_time_iso": "2026-06-25T15:52:44.272742+08:00",
+      "trigger": "定时",
+      "items_count": 3,
+      "urls": [
+        "https://insurance.hexun.com/2026-06-25/224415090.html",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247750086&idx=1&sn=8d4eefcf95b71d4353a284446da9a2c7&chksm=fdc3872408077b8fb4033c4b8095e141cc566ed18a466d46ede8000538f44ad047fb21917a44&scene=0#rd",
+        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247750035&idx=1&sn=b98edfb8fb93964b5e1e77b5e4a01e8d&chksm=fde9b0c2e9d16ab69e399420727e1f95fc9839c06350385d8bbf399c5528feaf07c65c5eb9d4&scene=0#rd"
+      ]
+    },
+    {
       "push_time_iso": "2026-06-25T12:23:42.455384+08:00",
       "trigger": "定时",
       "items_count": 19,
@@ -191,16 +201,6 @@
         "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247749468&idx=1&sn=eb07ef1359567f7065a78c34a3dfc9ef&chksm=fdd1bad27c51d2477593fc2fdc7a4b625f296697584014b873492c3582660538045c58656416&scene=0#rd",
         "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247749468&idx=2&sn=a7a42dbd9e7812761d6208002ff5ecda&chksm=fd6c67eaf769e914b658c56732daee6a558c22e61f04aff0e32311d617b99ee17151bcc7c40a&scene=0#rd",
         "http://mp.weixin.qq.com/s?__biz=MzA4MTk5MDUzNA==&mid=2651741176&idx=1&sn=cefe9c391ea4b68002e7e78d300cc7ad&chksm=855a2a92ce799605f476a8bb8cccea036234ea70a4ac578f1b60a32f1b973fb147109b00adc3&scene=0#rd"
-      ]
-    },
-    {
-      "push_time_iso": "2026-06-20T15:56:20.189516+08:00",
-      "trigger": "定时",
-      "items_count": 3,
-      "urls": [
-        "https://insurance.hexun.com/2026-06-20/224364643.html",
-        "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247749457&idx=1&sn=9afc3e62238fa72261dc4fba8b6f48d3&chksm=fdfe689fb1dd4180671449417f811bbfe0fe5fa69d215fdf8601aab494ee7ed30d65ac7d9cfd&scene=0#rd",
-        "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247591111&idx=1&sn=b866c4ba022352c2ac4450f1f0ea8a56&chksm=cfe8c302602552d32d6810bd229686c31f60b0d69dbd1c44e26eea377db0f9b80d060e43ecd0&scene=0#rd"
       ]
     }
   ]

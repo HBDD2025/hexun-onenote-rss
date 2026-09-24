@@ -1,8 +1,5 @@
 {
   "pushed_urls": [
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247750166&idx=2&sn=bbd3281a045c1374ed063824a22e3251&chksm=fd43b4feb0d2211beff5a348ca27e4283d1888bd05e77128c35556823d3be9a0114d12ff676e&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247750183&idx=1&sn=eab4e80389bdfca009dc96e652fc3807&chksm=fd3d51f1c8f5417fbee131fa5ca3d678c70793878207a68591c4b1168b6d22402ad9a6f9eeb1&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247750183&idx=2&sn=076fa29b84cc60565f5fdd60ce3f1b27&chksm=fd365088d73b75826d197af1303dffe6bf2030fdde7f95a169a0d9c8461681e36a1d4da0257e&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247750184&idx=1&sn=177c5d5a99cc33be8d13044ffe4a63ca&chksm=fde8f49c0477c80ac27b1a6c5859b4e4bbaaf9fb4d7b7ae1230e88cb9b56140d7118b5038fe5&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247750209&idx=1&sn=ac97bcdb8bec0e86e70fa3fde850ff95&chksm=fd6560092073fa67186adc5a2db717ac55bac221c5d2215ecf5a5765daf06f7f60f53d0e1fd6&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247750210&idx=1&sn=d4d464e2e84db319a41c22ecb64cc9d7&chksm=fdde50e844049f3b0af3a124bf8753c8cc0a23e9d7d55dc9226687d626e9779af7bad6e98cb0&scene=0#rd",
@@ -293,6 +290,9 @@
     "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247588414&idx=2&sn=465c7bc901ee1027a74cf35f8bbcf83a&chksm=fb40757b58bbf696fa1a2ebb63cda97771deb2091aff8f39f44c9dec9692623bd650b83d0f40&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247588476&idx=2&sn=93ae76084e5dda8c25e362efe6586488&chksm=fb8cad01507905b83a546e6cc2234ba34df6ac641e43a132f080ee340eaf0a208fed540d261d&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247588908&idx=1&sn=e3695d1136071f959b5afc26e93e4533&chksm=fb7c9773bd9ab44478308e43036f971429fd907d29ef19be9b37c2e9022903ad7b160f52d81f&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247589121&idx=2&sn=4a9a367df466395fdaffe92e78507a30&chksm=fbd0e36ffbf04ee34355227a4221c6c06dbbe9d421a49f7e4253da58930dc2ea106145edf44f&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247589188&idx=2&sn=f572fe798d7b10b65fd801c7c585cf73&chksm=fb146f2564f2361e13c78ce67558fb98266ff0a65414376d0023e92968f25124e5a1d2b462f9&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247589271&idx=2&sn=5f81320ad982bfd6271e05ccd2f7fd64&chksm=fb1c6c8ae5375c304abc01755f5eeed61507c9937b5341f00ec4ed591b0cdfd242a769533f24&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247590574&idx=1&sn=4d3ef4601911b9ca80c6f4074cb1ad1d&chksm=cf21e8db61448f5dbcca28d6d0e9f619a97564b05c06bc0a32eaa4581f71f441ac5a0ee4bde1&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247590589&idx=1&sn=9f970736bdd39b14fd9fdc7ba2cdd3e2&chksm=cfbeab3417078fc937510616227700c9871aae4e5d21f62c5c277de63b1956395fb3bf212484&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247590606&idx=1&sn=5e307bb4f0d8037f216d61d2f8f77d1a&chksm=cf1b30cf6f4f1a3c742859a5240c201b0086b39f5ecc0b444b9decec45085e5c2d1c15124b3b&scene=0#rd",
@@ -2001,10 +2001,8 @@
     "https://insurance.hexun.com/2026-09-15/225009679.html",
     "https://insurance.hexun.com/2026-09-15/225009687.html"
   ],
-  "updated_at": "2026-09-24T17:35:23.950978+08:00",
+  "updated_at": "2026-09-25T00:25:53.451504+08:00",
   "pushed_titles": [
-    "中小险企如何破局？一位董事长的新答案",
-    "中小险企开始对分红险“祛魅”：价值贡献低、资本占用高，利差损良药OR股东价值杀手？",
     "中小险企试水私募量化借道MOM投资引关注",
     "中意人寿暂停2026、2026年股东分红；恒邦财险原董事长肖晓华被开除党籍丨慧保日报6.16",
     "中意人寿荣膺2025年度IDC金融行业大奖团险理赔自动化风控项目获权威认可",
@@ -3036,6 +3034,7 @@
     "快讯｜丁向群任国家金融监督管理总局党委书记；中国平安连续十年蝉联全球保险品牌价值第一",
     "快讯｜丁向群任金融监管总局局长；北部湾保险外聘总经理离任",
     "快讯｜丁向群辞任中国人保董事长；香港保监局回应跨境投保",
+    "快讯｜三险企入围民企500强；险资或已开始买入港股通ETF",
     "快讯｜上海国际再保险中心建设若干措施发布；中安财险获发金融许可证",
     "快讯｜两家国有险企换帅；短剧也有保险了",
     "快讯｜中华财险：选举刘元章为董事长；顺丰获批在港设立顺丰保险",
@@ -3049,6 +3048,7 @@
     "快讯｜又一险企公开选聘总经理；险企年内发债补血超180亿元",
     "快讯｜和谐健康位列长鑫科技十大股东；AI热潮或冲击欧保险",
     "快讯｜孙先亮成大家保险集团法定代表人；安联：未来十年中国保险市场将以7.3%增速领跑全球",
+    "快讯｜平安日均Token用量超3000亿；达信推出AI经纪平台",
     "快讯｜平安长期服务计划再落地：40亿元购股、7万余员工参与；险资规模再超公募基金",
     "快讯｜年内14家险企发债320亿元；券商：非银有望迎来多重催化",
     "快讯｜年内保险业罚单金额已超亿元；中邮人寿原总经理党均章一审被判12年",

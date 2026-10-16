@@ -1,8 +1,5 @@
 {
   "pushed_urls": [
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751104&idx=1&sn=0b154c8811614bc613d13df2f4d23649&chksm=fd276b2e08bf22aa4e4b82dd0696002062eff73a1ea015678bf6924bfe7dc14361872f27fff7&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751110&idx=1&sn=ef8030a8bb039c99b4575fda978a53b1&chksm=fdc3be7cf45d16cf8bcca1f8a7714d371e139afd800ddd9c8a37900321e41a031177904dba57&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751126&idx=1&sn=930d5d3432c2039685517ad769ac6cca&chksm=fd2f6519ddcbde9ae43bce030827a5ddd74b322b476c03e59ed3374d78696669687b6bf1ebfb&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751127&idx=1&sn=f0bf7375eee9e9c70bade4f49ca7ceee&chksm=fd29a539fa72c7c95bcf5466c403ddef46ec13bf98a6367ba149f8e66fcd4f75fe5069870ce0&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751128&idx=1&sn=7388ae5d65a86c7f67571fd9340d8221&chksm=fd1b1ed040005f423ba283edf841a886111acd6c9736f0314d8489f6b3359bce6e05d9231882&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751142&idx=1&sn=0fea562af4f40a1cf1e8337e3cd810b8&chksm=fd3e51406644ca0ebbd1db8cb0f77c95c3b4a92b3805b4bcdc5e543461244439f2c52f998c69&scene=0#rd",
@@ -336,6 +333,7 @@
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593071&idx=1&sn=8421f9323153093768cff6d539ac8d4e&chksm=cf4e85d7ae98444b8107972a96e3cfaefbd655e10dae8e63b762b2c0da07ca41ad5c7011244f&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593086&idx=1&sn=a77db11d9ba77786423f14e3ab0f9397&chksm=cfcadb971efde4e2a593d4b9855b55642e07561dd4809be1c0ee40c23585efedc211301c6f78&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593095&idx=1&sn=172f81c4d57abd2493e9ec397be55ede&chksm=cfef651b151cd2459bf15c0cef314e091b0a2d4921f9c0919acf42044465757441e2e1e9aebf&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593102&idx=1&sn=8490893c406590582088f6ac7275b674&chksm=cf7ef23333a87d969607540b02c8cf65de34664cff64acae4a59d67ddbba9864842a9a44efab&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593187&idx=1&sn=56100036c2bc9e73fff0ca60fa6d5683&chksm=cfa4f0a9e96e0c5f550858d9aa3c3213b0e279dcc06b042624c95f8e6d16c2774b484711f52d&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247553456&idx=1&sn=2231879e72adbb96aabde00540e13c1c&chksm=cfb8b27ef8cf3b68b09f04c0465bdc2fb0022d16ebfc9ac98878e4ba8a5a3a5bb4233adbfee2#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247553463&idx=1&sn=55101b8999f1b9efa23ff0fff686bbdd&chksm=cfb8b279f8cf3b6f9d50461de215a65e958f622344919107dc2097fa9910604281a99b7e58c4#rd",
@@ -1999,13 +1997,12 @@
     "https://insurance.hexun.com/2026-09-30/225078106.html",
     "https://insurance.hexun.com/2026-10-07/225085709.html",
     "https://insurance.hexun.com/2026-10-07/225085895.html",
-    "https://insurance.hexun.com/2026-10-07/225085923.html"
+    "https://insurance.hexun.com/2026-10-07/225085923.html",
+    "https://insurance.hexun.com/2026-10-08/225087159.html",
+    "https://insurance.hexun.com/2026-10-08/225092167.html"
   ],
-  "updated_at": "2026-10-15T23:54:32.351242+08:00",
+  "updated_at": "2026-10-16T12:41:19.096421+08:00",
   "pushed_titles": [
-    "交通运输部、金融监管总局联合印发通知！推进“海事信用+航运保险”",
-    "交通银行行长张宝江：以数字赋能破解普惠金融服务“不可能三角”",
-    "交通银行，发布声明！",
     "交银人寿换帅：李亚出任董事长，王庆艳卸任",
     "交银人寿：李亚任董事、董事长，王庆艳卸任",
     "交银国际：维持中国人寿买入评级上调目标价至33港元",
@@ -2516,6 +2513,7 @@
     "员福市场如何正确打开？看安顾方胜张琼的四重破局",
     "周年臻藏之作：海港荣耀港湾年金，锁定合同载明权益",
     "周延礼：重构养老认知，以有韧性的三支柱筑牢银发经济底座",
+    "周报丨0免赔医疗险泛滥短剧平台，全能医疗险被指夸大宣传；前8月人身险公司原保费收入同比减少0.28%",
     "周报丨2020保险利润两重天：产险承保亏百亿，权益类投资超3100亿",
     "周报丨一寿险公司被员工实名举报；税务总局回应境外保单收益征税20%：并非新规",
     "周报丨中安财险获批受让长安责任保险业务；A股五大上市险企上半年合计归母净利润3173.84亿元",
@@ -3386,6 +3384,7 @@
     "湖南万医康养集团周求华：养老产业是“十五五”规划的红利点",
     "湖南财信育才保险代理有限公司永州市分公司及相关责任人因虚列费用套取资金、委托未通过机构进行执业登记的个人从事保险代理业务、未制作客户告知书遭行政处罚",
     "湛江中支被罚太平财险开年已累计5度收监管处罚",
+    "源于两大需求驱动险企密集增资“补血”",
     "溢价八成！保单权益公开拍卖，5人争抢、41轮竞价……",
     "演示利率的下调会不会影响分红保单的收益？",
     "澳药及健康应用研究院研究员王诺：衰老并非不可避免的生物学规律",
@@ -3581,6 +3580,7 @@
     "苹果公司宣布涨价",
     "茅台持股逼近50%，华贵人寿曾因“买保险送茅台”被罚",
     "茅台控股，董事长离任，新时代的华贵人寿何去何从",
+    "获批！这家2万亿机构迎来新任总经理",
     "菲律宾群岛地区突发7.9级地震，海啸预警发布",
     "营销驱动产能增长论坛|《中国保险数字化营销调研IV》将发布，全景呈现50+险企数字化布局与AI实战路径！",
     "落地智慧康养服务升级客户暖心体验中国太保寿险“区域智慧生活节”启幕",

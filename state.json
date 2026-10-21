@@ -1,10 +1,5 @@
 {
   "pushed_urls": [
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751386&idx=2&sn=72c96c4f5b42e4f55a8d5cfd3001d793&chksm=fda010e12af13a1b06692ee05ace52c32c90859c998d5145b17cf149950fecdb2847077a76f5&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751395&idx=2&sn=730ae7c195cf4f280f75ce32bcfd2b08&chksm=fd7db8e1ac6b967d6986d14a38d5950031d22a125fdb2a2bf8af8b2449be37c5103e3295ecb0&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751403&idx=1&sn=7316c7f827fc3851ac405a298bae533f&chksm=fd9404d885dca0d0a62eb3092fb25ab715698d1bc1b698d840493c443347c8c51ab83491ceb9&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751432&idx=1&sn=bd503284907df917d4ece0e6f5760958&chksm=fd2e7a26bfee86708afafc43f2da2685393ce6d0c5889b7a92b768be6594db367b31ec690b15&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751432&idx=2&sn=4ff4761701e946f2512e3ecf9f27d5b7&chksm=fdf2917445b1ae9f39ff4724789b59d9bcc9061bff9606d722423b7eea453b94d694c56e2336&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751433&idx=1&sn=4fd43bcab72c9e1f453c8744f191c4d4&chksm=fd6f743ee988e01a77bea1b6d0e344db5eeedc41d0e11c38e29406d5e5532e9f428bb7d53fe3&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751440&idx=1&sn=04796faf96c27675d36430d92ae59d04&chksm=fdd3c6f8750908bb97f800e4aef5ec73c8c0c38129c6b3e1d52d0216c0cd09b4df3350eb65b7&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751441&idx=1&sn=cd8d4a43d378456b61609a11c2e09db1&chksm=fdcf070e5acaf57c3825b56fff39d0f4df025861b378eb754bd9643d560fca5838b1155eaaf5&scene=0#rd",
@@ -1999,12 +1994,15 @@
     "https://insurance.hexun.com/2026-10-12/225104605.html",
     "https://insurance.hexun.com/2026-10-12/225105775.html",
     "https://insurance.hexun.com/2026-10-12/225106548.html",
-    "https://insurance.hexun.com/2026-10-12/225107014.html"
+    "https://insurance.hexun.com/2026-10-12/225107014.html",
+    "https://insurance.hexun.com/2026-10-13/225109676.html",
+    "https://insurance.hexun.com/2026-10-13/225110632.html",
+    "https://insurance.hexun.com/2026-10-13/225112706.html",
+    "https://insurance.hexun.com/2026-10-13/225113054.html",
+    "https://insurance.hexun.com/2026-10-13/225114343.html"
   ],
-  "updated_at": "2026-10-20T23:57:50.214191+08:00",
+  "updated_at": "2026-10-21T12:46:40.699746+08:00",
   "pushed_titles": [
-    "人保财险大连市中山支公司被罚虚构保险中介业务",
-    "人保财险成功落地全国首单超轻型飞行器专属保险；安联报告：中国成全球旅行保险认知度最高的市场|每日全球保险动态",
     "人保财险推出“人保优选让修车更放心”服务",
     "人保财险江西省分公司被罚未如实记录保险业务事项等",
     "人保财险泽普支公司某营销服务部被罚保险许可证遗失",
@@ -2085,6 +2083,7 @@
     "以再保初心守护国家战略用实干担当书写时代答卷——中国再保系统先进典型群像",
     "以后保险不能乱推了！你的风险评估等级不够，直接不让买",
     "以四大服务能力再造，答好金融为民时代问卷中国太保寿险2026年“高管讲消保”之“为民办实事”",
+    "以投资之强成队伍之胜，新华保险打造投资新实力",
     "以爱为诺，招商信诺以“保险+健康”专长守护多彩童年",
     "以高质量发展谱写“十五五”开局新篇太平人寿召开2026年度工作会议",
     "企业年金扩面“川渝样本”：人才可优先参加园区可集合办理",
@@ -3523,6 +3522,7 @@
     "美团：职伤保障累计缴费超30亿，参保骑手逾1000万",
     "美国保险公司：对激活特斯拉FSD的车主，保费减半",
     "美国健康保险公司股价盘前上涨",
+    "美国健康保险公司股盘前走强，Humana涨1.7%",
     "美国医保定价冲击被夸大？CantorFitzgerald：市场反应过度美股医疗保险板块正迎来抄底良机",
     "美国队，被淘汰！比利时晋级8强",
     "美联储维持利率不变，加息预期升温",

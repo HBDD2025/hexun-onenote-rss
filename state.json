@@ -1,8 +1,5 @@
 {
   "pushed_urls": [
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751691&idx=1&sn=d24a7ff4808a8c7064fb97b80adb7d8e&chksm=fd57704534181cdee0e3c2b4d38d125d38c663de5ad3e6bb04eb00244ccb6cf41d47e84671cd&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751708&idx=1&sn=a70ca39a9a338de3175c7c5dfe5dc2ee&chksm=fd91c24bf62a474466a5181977064d23afe4dbf9002775452436a49de4821276118291b0db90&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751716&idx=1&sn=8f2278f056b783da8d3ee1dc5d971dbd&chksm=fd556997a59df61778324c80de1605db52eaf58db6440d1f0eaaec36fc2f850cc11ad11ef0f6&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751724&idx=1&sn=401a9b00a4a3da20d3e80984f5a1269f&chksm=fdc43b35a9d164a3a046359d47d2da2d9c180c39388319ac3c5e6d472af1b9950088fe1aca79&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751739&idx=1&sn=3020f5f0cc2719a2f81ed36e3c7c1e0a&chksm=fdae29684dd547d3be5c4510f397678c954cd966f54501f2b2c481bd7f0de3ae0cc488a89137&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751755&idx=1&sn=e731d1b78581a40d19314ac1c2122a35&chksm=fd97da4fa94ec7212f89e333598ed9eeb13dd7532f2dd0cf06a6d709d51b1f0a4a9f21a5045e&scene=0#rd",
@@ -301,6 +298,7 @@
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593187&idx=1&sn=56100036c2bc9e73fff0ca60fa6d5683&chksm=cfa4f0a9e96e0c5f550858d9aa3c3213b0e279dcc06b042624c95f8e6d16c2774b484711f52d&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593243&idx=1&sn=8ad75af5b402708e8629d74ca8f607f6&chksm=cf8baad9381a638b5985430e4d83c149856c6903ac886092bb5970795838bf5230783cb8b715&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593245&idx=1&sn=af055e3f519abae33f130fb6330bf43f&chksm=cfc8eb50ab8d336cdfcaca7585a18906edc7f88ade4814d89a44a156eb2f5886857f015d94c0&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593257&idx=1&sn=566a865c82f446477748255d6d1b1b2f&chksm=cffcee0056b9a1ba670b865486c47bc4409f8eb7781e6595f6a3aa5a5fdc970ca51ad012e097&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593292&idx=1&sn=66195a6e87cf27a8b03ee097884864ff&chksm=cfe5e7e8b2e7f91974fb341bafb4e6ae09172c343f84c525ccd5b2fcff60f7cb9603edc637cc&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247553456&idx=1&sn=2231879e72adbb96aabde00540e13c1c&chksm=cfb8b27ef8cf3b68b09f04c0465bdc2fb0022d16ebfc9ac98878e4ba8a5a3a5bb4233adbfee2#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247553463&idx=1&sn=55101b8999f1b9efa23ff0fff686bbdd&chksm=cfb8b279f8cf3b6f9d50461de215a65e958f622344919107dc2097fa9910604281a99b7e58c4#rd",
@@ -1999,13 +1997,12 @@
     "https://insurance.hexun.com/2026-10-15/225120876.html",
     "https://insurance.hexun.com/2026-10-15/225121110.html",
     "https://insurance.hexun.com/2026-10-15/225123951.html",
-    "https://insurance.hexun.com/2026-10-15/225125129.html"
+    "https://insurance.hexun.com/2026-10-15/225125129.html",
+    "https://insurance.hexun.com/2026-10-16/225129084.html",
+    "https://insurance.hexun.com/2026-10-16/225132600.html"
   ],
-  "updated_at": "2026-10-23T23:55:09.297689+08:00",
+  "updated_at": "2026-10-24T12:34:47.063947+08:00",
   "pushed_titles": [
-    "人工智能交互应用师培训班",
-    "人工智能工程师培训火热进行中",
-    "人工智能时代资产管理行业投研认知范式转型研究",
     "人才争夺升温！险企扎堆“社招”高管，总经理、董秘、财务负责人??谁是那个“关键先生”？",
     "人民币S交易机遇捕手，施罗德资本如何构筑核心壁垒？",
     "人民银行7天期逆回购加码→",
@@ -2136,6 +2133,7 @@
     "保契锐评丨从保德信巨额诈骗案看保险代理人的生存窘境",
     "保契锐评丨从分红险示范条款看行业治理新路径",
     "保契锐评丨从太平财险被罚看公司治理有效性",
+    "保契锐评丨从清查“三年回本”看监管的宏观定力",
     "保契锐评丨从长安到中安，看保险业风险出清问题所在",
     "保契锐评丨从革新出发，十三载7.8镜鉴录",
     "保契锐评丨保险AI转型的悖论与重构",
@@ -3340,6 +3338,7 @@
     "深圳出台新能源车险高质量发展“深十条”",
     "深圳发布保险业行动方案支持机构做大做强做优",
     "深圳国际获利安人寿保险增持135.15万股每股作价约5.18港元",
+    "深圳生育保险政策红利释放锦欣生殖(01951.HK)旗下深圳中山妇产医院迎发展机遇",
     "深圳知识产权金融生态加速成型",
     "深圳：优化新能源车险供给探索“车电分离”模式汽车商业车险产品",
     "深圳：力争到2028年底科技保险保费收入年均增速超10%",
@@ -3905,6 +3904,7 @@
     "险资举牌次数再创新高，这类资产是挚爱",
     "险资入市空间再释放！直接利好沪深300等指数",
     "险资入市迎利好国有商业保险公司实施3年长周期考核",
+    "险资再出手友邦、大家成立35亿新公司投向不动产、新基建",
     "险资出手，今年首次举牌",
     "险资十年成绩单：平均收益率5.28%，投资股票占A股流通市值3.77%",
     "险资四季度调仓新动向：坚定持有核心资产布局顺周期股",

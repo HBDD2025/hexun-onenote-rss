@@ -1,6 +1,5 @@
 {
   "pushed_urls": [
-    "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751849&idx=1&sn=be1332e070ec3f852035d8828cc75d5a&chksm=fd528628aeee494699ee58d0811910159e7532b05571c27f7f4cf905305517cfb21cbf805f77&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751875&idx=1&sn=b77bb28a9bd1881a72d6aa65bfb1c6db&chksm=fdc5fb30c571da3778c3b2087aee734c331dc934fb33da1a0dffd4174c424b12c56a8a6089c0&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751875&idx=2&sn=12fc4adb2bd65235f23bbb88be9852e5&chksm=fd98c159471e0f7ec7c7f644b5d7a6744e248222e117fac0b3e97dbd2387ea0e777fcf8b077a&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzU3MDg5NjkxMQ==&mid=2247751876&idx=1&sn=4ec2007e2e872d595caa600e545f51d3&chksm=fdb578fdf9d21332edc23a1b3b1153b0c0bbfe7ae267962a920fe4a35f4b5c9896bebb8446a8&scene=0#rd",
@@ -291,6 +290,7 @@
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593262&idx=1&sn=bc43dce7d7dec148b59d15a3b8359905&chksm=cfa703d4066db75e9cf12b760f1765e5ee4f53d21a932e34b167eb902362559862b1f1db3e5b&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593292&idx=1&sn=66195a6e87cf27a8b03ee097884864ff&chksm=cfe5e7e8b2e7f91974fb341bafb4e6ae09172c343f84c525ccd5b2fcff60f7cb9603edc637cc&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593338&idx=1&sn=aff2b5716df1fe7a5267937ab2d7c62e&chksm=cfa7a3f96ca7c955f8c850983e62efd493f62b5d228d839169e2adb4f11dbdd18e3b224cee71&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg0NTE5OA==&mid=2247593388&idx=1&sn=fad6bced957ac200f50eb60e9f1631c9&chksm=cf11893de16d199b65b53f5fe091337ccdff20998136c7ec61e06e67a40592bf6bff28c0ebf2&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247553456&idx=1&sn=2231879e72adbb96aabde00540e13c1c&chksm=cfb8b27ef8cf3b68b09f04c0465bdc2fb0022d16ebfc9ac98878e4ba8a5a3a5bb4233adbfee2#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247553463&idx=1&sn=55101b8999f1b9efa23ff0fff686bbdd&chksm=cfb8b279f8cf3b6f9d50461de215a65e958f622344919107dc2097fa9910604281a99b7e58c4#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247553473&idx=1&sn=acf4f7ba23fe08e032e51cdfc30c4845&chksm=cfb8b20ff8cf3b199f03e0ec5e2afeec84b3a9bd0f0e4ca2db433aa24f68c3cc7168dce75bc6#rd",
@@ -2001,10 +2001,8 @@
     "https://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555501&idx=1&sn=c6bd466dd3fc87000762026ee414c6f5&chksm=ce47cbcfb4bda983c6684f0702cda5c5fd299d8cf843dc70417f57c7a4ec314694cc9ba45384&mpshare=1&scene=1&srcid=1025CG7tw3PqXC9cMZPJmO9y&sharer_shareinfo=ef9e42d7bff126c5813d840a24aeda28&sharer_shareinfo_first=ef9e42d7bff126c5813d840a24aeda28#rd",
     "https://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555505&idx=1&sn=b16711e0350dc6b3e11aa509df9dd42d&chksm=ceac9e0db38c5d0588852a9ee12a82a116bcd39ba7c46c5636157599cd222a1004b393198337&mpshare=1&scene=1&srcid=1025nPTgpdihxfbA5Ai6Ct57&sharer_shareinfo=a0d36ca9de25206fa52eeee1f245d869&sharer_shareinfo_first=a0d36ca9de25206fa52eeee1f245d869#rd"
   ],
-  "updated_at": "2026-10-29T19:11:36.966684+08:00",
+  "updated_at": "2026-10-30T01:45:20.239791+08:00",
   "pushed_titles": [
-    "今天起，我国全面进入汛期！",
-    "今年不变！保险产品“不降息”，关键指标两连升",
     "今年个税汇算，即将截止！逾期将影响个人权益与信用",
     "今年前4个月原保险保费收入达2.73万亿元",
     "今年前7个月生育保险惠及2556万人次",
@@ -2957,6 +2955,7 @@
     "弹窗广告“弹”出了间谍?!",
     "当上海老博会遇见“记忆花园”",
     "当好党和人民的“金融勤务员”——记“全国优秀共产党员”、恒丰银行股份有限公司青岛分行营业部副总经理李强",
+    "当社保开始“数据找人”，商业保险如何补位",
     "当网红大v成了保险销冠：保险业迎接超级个体时代，代理人、专业中介加速进化",
     "很多人账户里突然多了一笔钱！有人收到4400多元……",
     "徐敬惠：以客户需求为导向的创新成为保险业高质量的重要内容",
@@ -3688,6 +3687,7 @@
     "迎战“红霞”！7小时预赔387万守护海洋牧场",
     "运营商保险动作分化：中国移动线下开卖保险，电信旗下两张中介牌照相继摆上货架",
     "近15年寿险公司长期投资收益率排行榜：有4家公司长期综合投资收益率平均值超过6%！",
+    "近25年保险业投资收益率4.8%！年年正收益！看多久？看什么？怎么看？",
     "近40万亿险资运用图景：权益配置上升近2%，存款下降0.7%，长钱投资升级",
     "近三年平均年化综合投资收益率6.4%，新华保险如何把1.9万亿长期资金投出价值？",
     "近九成账户收益率超过3%！37款专属商业养老险交出2025年“成绩单”",

@@ -1,8 +1,5 @@
 {
   "pushed_urls": [
-    "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247583786&idx=2&sn=cbcd101754479ed59c35b178704e31c3&chksm=fb46f1d849f599ede979b7364c74e52971807d04cb605f8677b10d8f31bbf959a8079a7ef891&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247583801&idx=1&sn=8f0514450833ca86b3634d492d59453c&chksm=fb7597ef8ad8f1492a57f1508fa5a3db9e0e5a9efcfa9ce2f629a32ef350848e9c9a797e1899&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247583801&idx=2&sn=3fa2923cc9fe12fe83b9081293d85014&chksm=fbef396704c3af151c948c818c7af1628bf7c7ac6e89670d7c16a3178a452496806cab40eed3&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247583825&idx=1&sn=48cb847398a2fb06f9c30f5830092c93&chksm=fb0a2ab4d77f5a831d386d3dcca32af9ea27c6a11dc1a5b368be7653523c3f37afd4002f3f0f&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247583834&idx=1&sn=fb113a6e2239cd535dc795572bad706f&chksm=fb57223de3d638988a6a3f79d71fcfd85478463a0143eb45ba57f7821b534c6c36da1c544ec5&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247583834&idx=2&sn=f6091b63a022a5473cddca275471605c&chksm=fb4865d70444ee9c39335f48e4758d4b8fa0ed3500d9717797491863f61c5474f01e8ef615c8&scene=0#rd",
@@ -312,6 +309,9 @@
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555586&idx=1&sn=a0ca2103979f59d36f55c2699a2c4a1a&chksm=ce57049c0cc6f00b007f1748a2699d081b61c1e8e349d1a778abd1003a3ead1635bbf37e7a5c&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555650&idx=1&sn=d2ab8dde2f434878f78c2c0d93bb2b59&chksm=cef1da51a363433a7bfbc00d9504c0b6835c81aea679918b1fd23a6108d911b5f42a7c6c4102&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555650&idx=2&sn=328fdbd7c6d43405d9c552b15fb2e204&chksm=ce27955b3d8b56a4beabaca0c135368b58e5a311b3def1ec5fb87dfd5f65b43d52d427619e28&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555693&idx=2&sn=ceeb2e07ea1ce9babce20e34c7b20a78&chksm=cebfcbffb3c803592e7f40e5e58fbbae1babae85d1520134d095b22686b164a1d66cd606902d&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555702&idx=1&sn=7124cfa0051281cdc4bb4a2e4386bcf5&chksm=ce041e572bde1d9513921613ea00934679e72ee1166657b35989ab292e8dac33e42ce5eca8a5&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555736&idx=2&sn=0d3eb138a7ae0b40a7852c026a523ba3&chksm=ce8a8b1aae7cf35288cc02ac681d57a13bf56436557de56a10688b9b4fb2e37821d496296f4d&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzkzNTY2MjU1NQ==&mid=2247483779&idx=1&sn=ca0f61014016ed01a640e6f210b7905a&chksm=c2abc737f5dc4e217b0412ea1f8ae1ea712220c03dfd2790e3a197f25d4252a9b5a25a21fc42#rd",
     "http://mp.weixin.qq.com/s?__biz=MzkzNTY2MjU1NQ==&mid=2247483784&idx=1&sn=4a4794b41c6a710b9d61656eb829c6ac&chksm=c2abc73cf5dc4e2a8819a46c0d50bfe1c453e0082e5699235629063c62c58165b31731bae6ce#rd",
     "http://mp.weixin.qq.com/s?__biz=MzkzNTY2MjU1NQ==&mid=2247483799&idx=1&sn=e9dea40aeabf26b848ea464da00986c2&chksm=c2abc723f5dc4e355655000b45c9daa7241aab3e7889abb063ab80c69a45919fcb56c28b44f8#rd",
@@ -2001,10 +2001,8 @@
     "https://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555501&idx=1&sn=c6bd466dd3fc87000762026ee414c6f5&chksm=ce47cbcfb4bda983c6684f0702cda5c5fd299d8cf843dc70417f57c7a4ec314694cc9ba45384&mpshare=1&scene=1&srcid=1025CG7tw3PqXC9cMZPJmO9y&sharer_shareinfo=ef9e42d7bff126c5813d840a24aeda28&sharer_shareinfo_first=ef9e42d7bff126c5813d840a24aeda28#rd",
     "https://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555505&idx=1&sn=b16711e0350dc6b3e11aa509df9dd42d&chksm=ceac9e0db38c5d0588852a9ee12a82a116bcd39ba7c46c5636157599cd222a1004b393198337&mpshare=1&scene=1&srcid=1025nPTgpdihxfbA5Ai6Ct57&sharer_shareinfo=a0d36ca9de25206fa52eeee1f245d869&sharer_shareinfo_first=a0d36ca9de25206fa52eeee1f245d869#rd"
   ],
-  "updated_at": "2026-11-10T05:54:47.191212+08:00",
+  "updated_at": "2026-11-10T15:44:29.031712+08:00",
   "pushed_titles": [
-    "以“1+N”为核心扎实做好金融“五篇大文章”",
-    "以“新寿险”为笔泰康作答长寿时代民生题",
     "以保险之笔，绘就乡村振兴新画卷",
     "以信托之力守护百廿年老校——中诚信托赋能金乡小学提质发展",
     "以再保初心守护国家战略用实干担当书写时代答卷——中国再保系统先进典型群像",
@@ -2127,6 +2125,7 @@
     "保险ESG布局图谱：搭建管理框架推动规划与实施，投资理念倾斜、产品扩容",
     "保险“双录”政策的消费者权益保护效应研究",
     "保险业2025业绩出炉！全年保费增超7%，总资产突破41万亿元",
+    "保险业“董监高”规则系统性重塑：严把“关键少数”准入关！",
     "保险业全力应对山西留神峪煤矿爆炸事故；六省区洪灾保险估损7.5亿，已赔2.1亿丨慧保日报5.25",
     "保险业全力应对黑龙江大风灾害",
     "保险业前8月成绩单出炉：实现保费3.32万亿元保险资金权益类投资活跃",
@@ -2453,6 +2452,7 @@
     "周评|7年锐减700万：保险代理人回不到过去，但可有更好的未来",
     "周评|不是保险中介不行了，而是靠“牌照躺赚”中介不行了",
     "周评|丢掉幻想！金融严监管强监管：非周期之变，是时代之变",
+    "周评|从补齐链路到预期管理，“进博会”早已超越一场展会",
     "周评|从陆家嘴到金融街，金融强监管越来越清晰、具体和完善",
     "周评|安全生产事故频发，是该认真思考安责险的价值和短板了",
     "周评|成败皆股市",

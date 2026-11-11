@@ -1,8 +1,5 @@
 {
   "pushed_urls": [
-    "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247584043&idx=1&sn=55fb577efa59c843b8ab615f01a00863&chksm=fbc983d58cdbaaba831fcc8eeab5f7fb49b3e96f80df8638f37cc1753c133efb0b156c1bc4f1&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247584043&idx=2&sn=64e3a8ffbd094de76019f87d759db784&chksm=fb2a5f5dd0ca9f93d92f030f5bd32fe159d3d7c5f860251935d384b20acf2ed07e222f2be852&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247584043&idx=3&sn=9ed65f7ccc596c941752238c2a112ae1&chksm=fb0a41930a90022e87f7b115168dbceb0f867ef69ebdff7554e0e6cf34618e391d21f0a92a33&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247584065&idx=1&sn=a01ad41111bc2bbb1a9939be9ab6be0e&chksm=fb85e03027731bd88bbefacd998b9f111b1e1f2d1e53cfa42f29670b1dd8014194c2694d89ee&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247584065&idx=2&sn=a4de67b170df655c7c5c49954c80206a&chksm=fbc13bce56df2daf23520995e98fff0a2a717ccefe77e494c6cf82ca85ae80519f5580f46f5d&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247584125&idx=1&sn=0f452c2b70f9bcc26bf72ca8a84532be&chksm=fb13bd7957f50226c0bb2eb3747ff5afc008c8b8a61fdfa59b953496e959af5dd7767913ef7c&scene=0#rd",
@@ -301,8 +298,11 @@
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555586&idx=1&sn=a0ca2103979f59d36f55c2699a2c4a1a&chksm=ce57049c0cc6f00b007f1748a2699d081b61c1e8e349d1a778abd1003a3ead1635bbf37e7a5c&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555650&idx=1&sn=d2ab8dde2f434878f78c2c0d93bb2b59&chksm=cef1da51a363433a7bfbc00d9504c0b6835c81aea679918b1fd23a6108d911b5f42a7c6c4102&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555650&idx=2&sn=328fdbd7c6d43405d9c552b15fb2e204&chksm=ce27955b3d8b56a4beabaca0c135368b58e5a311b3def1ec5fb87dfd5f65b43d52d427619e28&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555693&idx=1&sn=2c834782105abbd546129eee5265e193&chksm=ce54b004245c30448d097f68bbbba9608c1a91fa815f81af6cccf11a67dbe7d2da6642d23afe&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555693&idx=2&sn=ceeb2e07ea1ce9babce20e34c7b20a78&chksm=cebfcbffb3c803592e7f40e5e58fbbae1babae85d1520134d095b22686b164a1d66cd606902d&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555698&idx=1&sn=72ae8eaa7b21d6fb213a3f37328dcec8&chksm=cee7b38cedf92e1efa30e72a08162abff84f2d7caf8fd8eceafa51a45ff76ea64a4b98dfb619&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555702&idx=1&sn=7124cfa0051281cdc4bb4a2e4386bcf5&chksm=ce041e572bde1d9513921613ea00934679e72ee1166657b35989ab292e8dac33e42ce5eca8a5&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555736&idx=1&sn=fb75c1634359d9c9cf903d5816a48314&chksm=ceafa94e76beedb280d648bf0942f31b6ba3ac21578df22c732c7005ae037545bcee62d2b908&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555736&idx=2&sn=0d3eb138a7ae0b40a7852c026a523ba3&chksm=ce8a8b1aae7cf35288cc02ac681d57a13bf56436557de56a10688b9b4fb2e37821d496296f4d&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzkzNTY2MjU1NQ==&mid=2247483779&idx=1&sn=ca0f61014016ed01a640e6f210b7905a&chksm=c2abc737f5dc4e217b0412ea1f8ae1ea712220c03dfd2790e3a197f25d4252a9b5a25a21fc42#rd",
     "http://mp.weixin.qq.com/s?__biz=MzkzNTY2MjU1NQ==&mid=2247483784&idx=1&sn=4a4794b41c6a710b9d61656eb829c6ac&chksm=c2abc73cf5dc4e2a8819a46c0d50bfe1c453e0082e5699235629063c62c58165b31731bae6ce#rd",
@@ -2001,9 +2001,8 @@
     "https://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555501&idx=1&sn=c6bd466dd3fc87000762026ee414c6f5&chksm=ce47cbcfb4bda983c6684f0702cda5c5fd299d8cf843dc70417f57c7a4ec314694cc9ba45384&mpshare=1&scene=1&srcid=1025CG7tw3PqXC9cMZPJmO9y&sharer_shareinfo=ef9e42d7bff126c5813d840a24aeda28&sharer_shareinfo_first=ef9e42d7bff126c5813d840a24aeda28#rd",
     "https://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555505&idx=1&sn=b16711e0350dc6b3e11aa509df9dd42d&chksm=ceac9e0db38c5d0588852a9ee12a82a116bcd39ba7c46c5636157599cd222a1004b393198337&mpshare=1&scene=1&srcid=1025nPTgpdihxfbA5Ai6Ct57&sharer_shareinfo=a0d36ca9de25206fa52eeee1f245d869&sharer_shareinfo_first=a0d36ca9de25206fa52eeee1f245d869#rd"
   ],
-  "updated_at": "2026-11-11T03:06:26.357796+08:00",
+  "updated_at": "2026-11-11T14:28:57.847747+08:00",
   "pushed_titles": [
-    "企业年金扩面“川渝样本”：人才可优先参加园区可集合办理",
     "企业年金扩面一线观察：先要让企业知道这政策",
     "企微AI助力保险经营新升级！企业微信张金光：依托企微AI升级，赋能险企多场景提质增效",
     "伊朗外交部：伊美达成协议文件",
@@ -3960,6 +3959,7 @@
     "首笔赔款落地灾区！中国太保全力做好西藏那曲市巴青县抗震救灾保险金融服务",
     "香港保监局回应“港险收益征税20%”：居民境外投资收益依法申报及缴税要求一直存在",
     "香港保监局禁止6人成为保险中介人处罚期6个月至13个月",
+    "香港保监局紧急提醒风险：港币利率回落，保费融资升温！",
     "香港保监局：已成立专责小组全力推进宏福苑相关保险工作",
     "香港保监局：香港去年首三季毛保费总额6370亿港元升32.5%",
     "香港保险业监管局回应境外保单征税传闻：相关要求一直存在市场无需过度解读",

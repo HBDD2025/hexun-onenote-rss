@@ -1,8 +1,5 @@
 {
   "pushed_urls": [
-    "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247585952&idx=1&sn=0360d7dc1d7ba3b6d0bd30bcc0cf1b4e&chksm=fb681121825f629277adb71fa7ea7bab46f7fcbb908790bd5206b0e3a5483a5f5a7a4756fd88&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247585952&idx=2&sn=c8e83037d3046939a9806acb3ae7f879&chksm=fb4ff4dd21d7159ea32d258b70b5be76062e54f1d855eaabc72338030ae3ad6238bddb6fbe6f&scene=0#rd",
-    "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247585952&idx=3&sn=f0e4bf3715075bfc4142ca9aa367c2e8&chksm=fb27cf7d106189d1d70c59daf9569ef0ad03f4949654da417f21ba2ba6e356d8b325abefcbfb&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247585975&idx=1&sn=4e9ca738b84e6a7042514d0c12865327&chksm=fb48e914c409a987f94c7fe56890027f50084ac18f1403b6e1a25a5858ae5046e69a12dda916&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247585975&idx=2&sn=f5488994331d97fcec77be84e06e9f95&chksm=fb06a806e0511423af7ed88ca967e80f2ec004ad3fc32f3e8ebda39dbb08a7ea29e4044586b5&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzUzMjUwMDE0NQ==&mid=2247585981&idx=1&sn=547a57cbfd20c97850c78875639aae7a&chksm=fbc8d3d9ef823aa85c319080bc28f8705eaf0a93dd9ce8ae63d6ff95306068e06e5d28a09df8&scene=0#rd",
@@ -266,6 +263,9 @@
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555736&idx=1&sn=fb75c1634359d9c9cf903d5816a48314&chksm=ceafa94e76beedb280d648bf0942f31b6ba3ac21578df22c732c7005ae037545bcee62d2b908&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555736&idx=2&sn=0d3eb138a7ae0b40a7852c026a523ba3&chksm=ce8a8b1aae7cf35288cc02ac681d57a13bf56436557de56a10688b9b4fb2e37821d496296f4d&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555770&idx=1&sn=b59607bd61671825e803c40bf95a9656&chksm=ce8a76f74e5e4ccf7102f69419089b0704492fc05e08059f6f9ac374677824fda3eb6e29eaf2&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555804&idx=2&sn=e921d2c0aacce25a7e5c680ef34e5732&chksm=ceba2dafb3fd78193d946256b01413394c6b7a774df919ee22f1f5e4b94ff7f66e7ed41a47df&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555825&idx=1&sn=a290e06b9a519d2b405a4139f9c9ed5c&chksm=ce2b1b0d24448013497d5ea563880d472ec526e2e54b55bbb8a3628d3952408d7f4784daa184&scene=0#rd",
+    "http://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555825&idx=2&sn=e5573f7a5f4aae99f1b4cd4e76e85efd&chksm=ce530c3ba93867f758ae0ca27edc106d8a2afb960ef0b23c0713b1a2f4872f5a35c0e7819686&scene=0#rd",
     "http://mp.weixin.qq.com/s?__biz=MzkzNTY2MjU1NQ==&mid=2247483779&idx=1&sn=ca0f61014016ed01a640e6f210b7905a&chksm=c2abc737f5dc4e217b0412ea1f8ae1ea712220c03dfd2790e3a197f25d4252a9b5a25a21fc42#rd",
     "http://mp.weixin.qq.com/s?__biz=MzkzNTY2MjU1NQ==&mid=2247483784&idx=1&sn=4a4794b41c6a710b9d61656eb829c6ac&chksm=c2abc73cf5dc4e2a8819a46c0d50bfe1c453e0082e5699235629063c62c58165b31731bae6ce#rd",
     "http://mp.weixin.qq.com/s?__biz=MzkzNTY2MjU1NQ==&mid=2247483799&idx=1&sn=e9dea40aeabf26b848ea464da00986c2&chksm=c2abc723f5dc4e355655000b45c9daa7241aab3e7889abb063ab80c69a45919fcb56c28b44f8#rd",
@@ -2001,9 +2001,8 @@
     "https://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555501&idx=1&sn=c6bd466dd3fc87000762026ee414c6f5&chksm=ce47cbcfb4bda983c6684f0702cda5c5fd299d8cf843dc70417f57c7a4ec314694cc9ba45384&mpshare=1&scene=1&srcid=1025CG7tw3PqXC9cMZPJmO9y&sharer_shareinfo=ef9e42d7bff126c5813d840a24aeda28&sharer_shareinfo_first=ef9e42d7bff126c5813d840a24aeda28#rd",
     "https://mp.weixin.qq.com/s?__biz=Mzg4NDI1ODQ2NQ==&mid=2247555505&idx=1&sn=b16711e0350dc6b3e11aa509df9dd42d&chksm=ceac9e0db38c5d0588852a9ee12a82a116bcd39ba7c46c5636157599cd222a1004b393198337&mpshare=1&scene=1&srcid=1025nPTgpdihxfbA5Ai6Ct57&sharer_shareinfo=a0d36ca9de25206fa52eeee1f245d869&sharer_shareinfo_first=a0d36ca9de25206fa52eeee1f245d869#rd"
   ],
-  "updated_at": "2026-11-18T04:08:33.411604+08:00",
+  "updated_at": "2026-11-18T15:36:34.116169+08:00",
   "pushed_titles": [
-    "伯克希尔哈撒韦公司第三季度营业利润为127.1亿美元同比下降5.8%",
     "伯克希尔哈撒韦第一季度营业利润113.5亿美元，同比增长18%",
     "估损金额2584万元北京保险业全力迎战台风“巴威”",
     "低利率周期增配权益是各国险企必经之路",
@@ -3311,6 +3310,7 @@
     "深谈丨四家寿险公司中介经营账：降本增效之外的增长共识，是什么？",
     "深谈丨当AI进入保险深水区：六位高管谈机会、投入与能力边界",
     "渤海人寿公开招聘总经理",
+    "渤海人寿招募精算类专才，部门总经理在列",
     "港A异动｜中国平安AH股均涨超2%，十度蝉联中国最具价值保险品牌",
     "港A异动｜中国平安H股涨近4%股价创2021年5月以来新高市值站上1.33万亿！",
     "港交所：对泰加保险及其6名董事采取纪律行动",
